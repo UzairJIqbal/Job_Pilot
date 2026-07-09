@@ -47,3 +47,7 @@ next-env.d.ts
 
 # pdf-parse workaround
 test/data/05-versions-space.pdf
+
+# AI tool configs
+.claude/
+memory.md

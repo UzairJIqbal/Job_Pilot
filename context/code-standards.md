@@ -54,7 +54,7 @@ The AI agent on this project operates as a senior engineer. This means:
 
 - Folders: kebab-case — `job-details`, `agent-controls`
 - Component files: PascalCase — `StatsBar.tsx`, `RecentActivity.tsx`
-- Utility files: camelCase — `browserbase.ts`, `posthog-client.ts`
+- Utility files: camelCase — `stagehand.ts`, `posthog-client.ts`
 - Type files: camelCase — `index.ts`
 - API route files: always `route.ts`
 - Server Action files: camelCase — `profile.ts`, `jobs.ts`
@@ -228,8 +228,10 @@ All PostHog events must use these exact event names. Never invent new event name
 | `job_found`          | Each job discovered and saved              | userId, source, matchScore |
 | `profile_completed`  | User saves complete profile for first time | userId                     |
 | `company_researched` | Company research dossier generated         | userId, jobId, company     |
+| `interview_prep_generated` | Interview prep materials generated | userId, jobId, company     |
+| `email_templates_generated` | Email templates generated          | userId, jobId, company     |
 
-These four events are the only events in this project. Do not add more without updating this list first.
+These six events are the only events in this project. Do not add more without updating this list first.
 
 `job_found` powers the Jobs Found Over Time and Match Score Distribution dashboard charts.
 `company_researched` powers the Company Research Activity dashboard chart.
@@ -245,11 +247,9 @@ All environment variables defined in `.env.local` for development. Never hardcod
 | ------------------------------- | ---------------------- |
 | `NEXT_PUBLIC_INSFORGE_URL`      | lib/insforge-client.ts |
 | `NEXT_PUBLIC_INSFORGE_ANON_KEY` | lib/insforge-client.ts |
-| `BROWSERBASE_API_KEY`           | lib/browserbase.ts     |
-| `BROWSERBASE_PROJECT_ID`        | lib/browserbase.ts     |
-| `OPENAI_API_KEY`                | agent/ functions       |
-| `ADZUNA_APP_ID`                 | lib/adzuna.ts          |
-| `ADZUNA_APP_KEY`                | lib/adzuna.ts          |
+| `GEMINI_API_KEY`                | lib/gemini-client.ts   |
+| `ADZUNA_APP_KEY`                | lib/adzuna.ts (app_id) |
+| `ADZUNA_API_KEY`                | lib/adzuna.ts (app_key)|
 | `NEXT_PUBLIC_POSTHOG_KEY`       | lib/posthog-client.ts  |
 | `NEXT_PUBLIC_POSTHOG_HOST`      | lib/posthog-client.ts  |
 
@@ -290,7 +290,7 @@ import { Button } from "../../../components/ui/button";
 
 - No comments explaining what the code does — code must be self-explanatory
 - Comments only for why — explaining a non-obvious decision
-- Agent functions may have a brief comment explaining the Browserbase or Stagehand strategy
+- Agent functions may have a brief comment explaining the Stagehand or Playwright strategy
 - Never leave TODO comments in committed code
 
 ---
@@ -306,9 +306,9 @@ Never install a new package without a clear reason. Before installing anything c
 Approved dependencies for this project:
 
 - `@insforge/ssr` — InsForge client
-- `@browserbasehq/sdk` — Browserbase sessions
-- `@browserbasehq/stagehand` — AI browser control
-- `openai` — GPT-4o API
+- `stagehand` — AI browser automation
+- `playwright` / `playwright-core` — Headless Chromium browser
+- `@google/generative-ai` — Gemini API
 - `posthog-js` — PostHog browser client
 - `posthog-node` — PostHog server client
 - `@react-pdf/renderer` — Resume PDF generation

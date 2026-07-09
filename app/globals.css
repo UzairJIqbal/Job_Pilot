@@ -46,10 +46,12 @@
   --color-info-muted: #94a2c5;
 
   --color-warning: #ff8904;
-  --color-warning-foreground: #ffffff;
+  --color-warning-lightest: #fff7ed;
+  --color-warning-foreground: #c2410c;
 
   --color-error: #ef4444;
-  --color-error-foreground: #ffffff;
+  --color-error-lightest: #fef2f2;
+  --color-error-foreground: #dc2626;
 
   --color-linkedin: #0a66c2;
   --color-linkedin-light: #dce6f1;
@@ -73,6 +75,68 @@
 
 :root {
   color-scheme: light;
+}
+
+.dark {
+  color-scheme: dark;
+
+  /* Page + surfaces */
+  --color-background: #0f1117;
+  --color-surface: #1a1d27;
+  --color-surface-secondary: #22252f;
+  --color-surface-tertiary: #2a2d38;
+  --color-surface-muted: #1e2130;
+
+  /* Borders */
+  --color-border: #2e3140;
+  --color-border-light: #363a4a;
+  --color-border-muted: #3a3e50;
+
+  /* Text */
+  --color-text-primary: #e8eaf0;
+  --color-text-secondary: #9ca3b8;
+  --color-text-muted: #6b7280;
+  --color-text-dark: #c4c8d4;
+  --color-text-darker: #d0d4e0;
+  --color-text-darkest: #eef0f4;
+  --color-text-black: #f4f5f7;
+  --color-text-slate: #dce0e8;
+  --color-text-slate-medium: #9ca3b8;
+
+  /* Accent (stays vibrant on dark) */
+  --color-accent: #8b6fff;
+  --color-accent-dark: #a78bff;
+  --color-accent-light: #2a2040;
+  --color-accent-muted: #1e1830;
+
+  /* Success */
+  --color-success: #34d399;
+  --color-success-light: #0d3025;
+  --color-success-lightest: #0f2920;
+  --color-success-foreground: #6ee7b7;
+
+  /* Info */
+  --color-info: #60a5fa;
+  --color-info-light: #1e2a40;
+  --color-info-lightest: #172033;
+  --color-info-foreground: #93c5fd;
+  --color-info-muted: #4a5a80;
+
+  /* Warning */
+  --color-warning: #fbbf24;
+  --color-warning-lightest: #2a2210;
+  --color-warning-foreground: #fcd34d;
+
+  /* Error */
+  --color-error: #f87171;
+  --color-error-lightest: #2d1515;
+  --color-error-foreground: #fca5a5;
+
+  /* LinkedIn */
+  --color-linkedin-light: #1a2a3a;
+
+  /* Shadow — more subtle on dark */
+  --shadow-card: 0px 1px 3px rgba(0, 0, 0, 0.3), 0px 1px 2px -1px rgba(0, 0, 0, 0.3);
 }
 
 body {
@@ -104,4 +168,21 @@ body {
 
 .image-soft-shadow {
   box-shadow: 0 24px 50px color-mix(in srgb, var(--color-info-muted) 26%, transparent);
+}
+
+@keyframes check-draw {
+  to {
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes modal-fade-out {
+  from {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+  to {
+    opacity: 0;
+    transform: scale(0.95) translateY(4px);
+  }
 }

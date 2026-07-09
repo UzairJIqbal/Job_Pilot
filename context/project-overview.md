@@ -62,7 +62,7 @@ Full width layout on all pages. No sidebar.
 - Two options on upload:
   - "Extract from Resume" → GPT-4o parses resume and auto-fills profile form fields
   - "Skip" → resume stored as-is, profile unchanged
-- User can manually edit any profile field at any time
+- User can manually edit any profile field at any time (except email, which is pre-filled from OAuth and non-editable)
 - User can generate a clean professional PDF resume from their current profile data using GPT-4o
 
 ### Finding Jobs — Adzuna Discovery
@@ -102,13 +102,13 @@ Full width layout on all pages. No sidebar.
 - Company Research section:
   - Empty state with Research Company button
   - After research: structured dossier showing company overview, tech stack, culture, why this role exists, interview prep talking points
-  - Powered by Browserbase + Stagehand browsing the company's public pages
+  - Powered by Stagehand + Playwright browsing the company's public pages
 - Apply Now button — opens external apply URL in new tab
 
 ### Company Research Flow
 
 - User clicks Research Company on job details page
-- Single Browserbase session opens with Stagehand
+- Stagehand launches a local Playwright browser session
 - Agent navigates to company homepage — extracts overview, nav links, tech mentions
 - Agent visits About, Blog, Engineering pages if they exist
 - GPT-4o synthesizes all extracted content into structured dossier
@@ -170,7 +170,7 @@ Full width layout on all pages. No sidebar.
 - Adzuna API job discovery — searches by title and location, category filtered to IT jobs
 - GPT-4o job matching with score, reason, matched skills, missing skills
 - Job details page with full structured description
-- Company Research Agent — single Browserbase session browses company public pages, GPT-4o builds dossier
+- Company Research Agent — Stagehand + Playwright browses company public pages, Gemini synthesizes dossier
 - Find Jobs page with search controls, filter, sort dropdown, pagination
 - Dashboard with stats bar, recent activity, analytics charts
 - PostHog event tracking throughout

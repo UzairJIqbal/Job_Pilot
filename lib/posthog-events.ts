@@ -15,3 +15,11 @@ export function trackProfileCompleted(userId: string) {
 export function trackCompanyResearched(userId: string, jobId: string, company: string) {
   posthog.capture("company_researched", { userId, jobId, company });
 }
+
+export function trackInterviewPrepGenerated(userId: string, jobId: string, company: string) {
+  posthog.capture("interview_prep_generated", { userId, jobId, company });
+}
+
+export function trackEmailTemplatesGenerated(userId: string, jobId: string, company: string) {
+  posthog.capture("email_templates_generated", { userId, jobId, company });
+}

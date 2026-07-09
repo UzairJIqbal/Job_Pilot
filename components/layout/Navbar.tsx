@@ -3,6 +3,7 @@ import type { ReactElement } from "react";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { SignOutButton } from "./SignOutButton";
 import { PostHogIdentify } from "@/components/PostHogIdentify";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 
 function LogoIcon(): ReactElement {
   return (
@@ -75,16 +76,19 @@ export async function Navbar(): Promise<ReactElement> {
           ))}
         </nav>
 
-        {user ? (
-          <SignOutButton />
-        ) : (
-          <Link
-            href="/login"
-            className="inline-flex h-9 items-center justify-center rounded-md bg-text-slate px-5 text-sm font-medium leading-5 text-white transition-colors hover:bg-text-darker"
-          >
-            Start for free
-          </Link>
-        )}
+        <div className="flex items-center gap-3">
+          <ThemeToggle />
+          {user ? (
+            <SignOutButton />
+          ) : (
+            <Link
+              href="/login"
+              className="inline-flex h-9 items-center justify-center rounded-md bg-overlay px-5 text-sm font-medium leading-5 text-white transition-colors hover:bg-overlay-dark"
+            >
+              Start for free
+            </Link>
+          )}
+        </div>
       </div>
     </header>
   );

@@ -241,7 +241,7 @@ Build the complete job details page UI. Job data from DB is already available fr
 
 # Feature 13 — Company Research Agent (Updated)
 
-Agent researches the company using their public website and builds a structured dossier using a single Browserbase session. Three data sources fused together: company website content, job description from DB, user profile from DB.
+Agent researches the company using their public website and builds a structured dossier using Stagehand + local Playwright. Three data sources fused together: company website content, job description from DB, user profile from DB.
 
 **Logic:**
 
@@ -255,7 +255,7 @@ Agent researches the company using their public website and builds a structured 
   - Construct homepage URL as https://{rootDomain}
   - If response.url still contains "adzuna.com" or fetch throws — fall back to https://www.{company}.com (company name from DB)
   - If Stagehand gets no meaningful content (oneLiner and productSummary empty) — skip browser research entirely, proceed to GPT-4o synthesis with job description and profile only
-- Open single Browserbase session with Stagehand
+- Launch local Playwright browser with Stagehand
   **Stagehand homepage extraction:**
 
 ```typescript
@@ -313,7 +313,7 @@ const page = await stagehand.extract({
 });
 ```
 
-- Close Browserbase session after homepage + max 3 sub-pages
+- Close browser after homepage + max 3 sub-pages
   **GPT-4o synthesis (runs after browser closes):**
 
 System prompt:

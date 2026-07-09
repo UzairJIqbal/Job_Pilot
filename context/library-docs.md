@@ -168,8 +168,8 @@ export async function searchJobs(
   country: string = "us",
 ): Promise<AdzunaJob[]> {
   const params = new URLSearchParams({
-    app_id: process.env.ADZUNA_APP_ID!,
-    app_key: process.env.ADZUNA_APP_KEY!,
+    app_id: process.env.ADZUNA_APP_KEY!, // numeric value maps to Adzuna app_id
+    app_key: process.env.ADZUNA_API_KEY!, // hex string maps to Adzuna app_key
     what: jobTitle,
     category: "it-jobs", // always filter to IT jobs
     results_per_page: "10",
@@ -252,34 +252,30 @@ const jobRecord = {
 
 ---
 
-## Browserbase
+## Stagehand + Playwright (Company Research)
 
-**Check first:** Check AGENTS.md for an installed Browserbase skill. If a Browserbase MCP server is configured — use it. The skill/MCP will have the latest session management and API patterns.
+**Check first:** Check AGENTS.md for an installed Stagehand skill. If a Stagehand MCP server is configured — use it. The skill/MCP will have the latest act() and extract() patterns.
 
-### Session Creation — Company Research
+Stagehand runs on a **local Playwright/Chromium browser** — no cloud browser service required. The browser process runs inside the Next.js server during the API route execution.
+
+### Browser Launch
 
 ```typescript
-import Browserbase from "@browserbasehq/sdk";
+import { chromium } from "playwright";
+import { Stagehand } from "stagehand";
 
-const bb = new Browserbase({ apiKey: process.env.BROWSERBASE_API_KEY! });
-
-// Single session for company research — sequential page visits
-const session = await bb.sessions.create({
-  projectId: process.env.BROWSERBASE_PROJECT_ID!,
-  timeout: 120, // 2 minute session — visits 3-4 pages max
-});
+const browser = await chromium.launch({ headless: true });
+const stagehand = new Stagehand({ browser });
+await stagehand.init();
+const page = stagehand.context.activePage()!;
 ```
-
-**Important — Browserbase runs independently from your Next.js server:**
-Browserbase sessions run on Browserbase's cloud infrastructure, not inside your Next.js API route. The API route triggers the Browserbase session and returns a response while the session continues running independently on Browserbase's platform. Do not add `maxDuration` or any timeout configuration to Next.js API routes to accommodate Browserbase session length.
 
 **Rules:**
 
-- Always use single sessions — never parallel sessions (free plan limit)
-- Session timeout is 120 seconds — sufficient for 3-4 page visits
-- Always end sessions cleanly — call stagehand.close() when done
-- Project ID always from `process.env.BROWSERBASE_PROJECT_ID` — never hardcode
-- Browserbase client lives in `lib/browserbase.ts` — always import from there
+- Always use `headless: true` — no visual browser in production
+- Always close both `stagehand.close()` and `browser.close()` when done — never leave browsers open
+- Browser runs synchronously within the API route — no timeout concerns like cloud browsers
+- Stagehand handles anti-bot detection via Playwright's built-in stealth features
 
 ---
 
@@ -290,16 +286,11 @@ Browserbase sessions run on Browserbase's cloud infrastructure, not inside your 
 ### Initialisation
 
 ```typescript
-import { Stagehand } from "@browserbasehq/stagehand";
+import { Stagehand } from "stagehand";
+import { chromium } from "playwright";
 
-const stagehand = new Stagehand({
-  env: "BROWSERBASE",
-  apiKey: process.env.BROWSERBASE_API_KEY!,
-  projectId: process.env.BROWSERBASE_PROJECT_ID!,
-  browserbaseSessionID: session.id,
-  model: { modelName: "openai/gpt-4o", apiKey: process.env.OPENAI_API_KEY! },
-  disablePino: true,
-});
+const browser = await chromium.launch({ headless: true });
+const stagehand = new Stagehand({ browser });
 
 await stagehand.init();
 const page = stagehand.context.activePage()!;
@@ -451,15 +442,9 @@ Experience: ${profile.years_experience} years, level ${profile.experience_level}
 Skills: ${profile.skills.join(", ")}
 Work history: ${JSON.stringify(profile.work_experience)}`;
 
-const response = await openai.chat.completions.create({
-  model: "gpt-4o",
-  response_format: { type: "json_object" },
-  temperature: 0.4,
-  messages: [
-    { role: "system", content: systemPrompt },
-    { role: "user", content: userPrompt },
-  ],
-});
+const response = await genAI
+  .getGenerativeModel({ model: "gemini-2.5-flash" })
+  .generateContent([systemPrompt, userPrompt]);
 ```
 
 **Dossier fields:**
@@ -480,65 +465,46 @@ const response = await openai.chat.completions.create({
 
 - Always use `extract()` with a Zod schema — never parse raw HTML or use regex
 - Always wrap every `act()` and `extract()` in try/catch
-- Always call `await stagehand.close()` when done — ends the Browserbase session
-- Model is always `gpt-4o` — never use other models
+- Always call `await stagehand.close()` and `await browser.close()` when done
+- Model is always `gemini-2.5-flash` — never use other models
 - Temperature is `0.4` for synthesis — grounded but flexible enough to make real connections
 - Max 3 sub-pages — never exceed this on free plan
-- Always close session in finally block — never leave sessions open even if research fails
+- Always close browser in finally block — never leave browsers open even if research fails
 - Job description and profile always come from DB — never re-fetch via browser
 - If browser research returns empty — still run synthesis with job + profile only
 - yourEdge, gapsToAddress, and smartQuestions are the most valuable fields — never skip them
 
-## OpenAI GPT-4o
+## Google Gemini
 
-**Check first:** Check AGENTS.md for an installed OpenAI skill. The skill will have the latest API patterns and model capabilities.
+**Check first:** Check AGENTS.md for an installed Gemini skill. The skill will have the latest API patterns and model capabilities.
 
 ### Structured JSON Response
 
 ```typescript
-import OpenAI from "openai";
+import { getGeminiClient } from "@/lib/gemini-client";
 
-const openai = new OpenAI({ apiKey: process.env.OPENAI_API_KEY! });
+const genAI = getGeminiClient();
+const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
 
-const response = await openai.chat.completions.create({
-  model: "gpt-4o",
-  response_format: { type: "json_object" },
-  temperature: 0.3,
-  messages: [
-    {
-      role: "system",
-      content: "You are a job matching assistant. Return only valid JSON.",
-    },
-    {
-      role: "user",
-      content: `Your prompt here`,
-    },
-  ],
-});
+const result = await model.generateContent([
+  systemPrompt,
+  `\n\nUser input:\n${userInput}`,
+]);
 
-const result = JSON.parse(response.choices[0].message.content!);
+const responseText = result.response.text();
+const parsed = JSON.parse(responseText);
 ```
-
-**Temperature settings:**
-
-- `0.3` — matching, scoring, extraction, research synthesis — deterministic results
-- `0.7` — resume generation — natural variation
-
-**Max tokens:**
-
-- Job matching + scoring: `300`
-- Company research synthesis: `800`
-- Resume generation: `1000`
-- Profile extraction from resume: `800`
 
 **Rules:**
 
-- Model string is always `'gpt-4o'` — never use other model names
-- Always use `response_format: { type: 'json_object' }` for structured data
-- Always parse `response.choices[0].message.content` as string — even with json_object it returns a string
+- Model string is always `'gemini-2.5-flash'` — never use other model names
+- Always use `getGeminiClient()` from `lib/gemini-client.ts` — never instantiate directly
+- Always strip markdown code fences before parsing: `.replace(/^```json\s*/i, "").replace(/\s*```$/i, "")`
 - Always validate parsed JSON before using — wrap in try/catch
 - Match threshold is always `MATCH_THRESHOLD` from `lib/utils.ts` — never hardcode 70
 - Company research synthesis must always return a complete dossier — never return empty even if browser research failed
+- For retry logic, extract `retryDelay` from error `errorDetails` array — do not use fixed backoff
+- Free tier limits: 5 req/min, 20 req/day — design agents to minimise API calls
 
 ---
 

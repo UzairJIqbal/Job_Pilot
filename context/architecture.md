@@ -6,10 +6,10 @@
 | ------------------------------ | ------------------------ | ------------------------------------------------ |
 | Framework                      | Next.js 16 (App Router)  | Full stack framework                             |
 | Auth + DB + Storage + Realtime | InsForge                 | Entire backend                                   |
-| Cloud browser                  | Browserbase              | Company research — browsing company public pages |
-| AI browser control             | Stagehand                | Company page interaction and content extraction  |
+| Browser automation            | Playwright               | Local headless Chromium for company research     |
+| AI browser control             | Stagehand                | AI-powered page interaction and content extraction |
 | Job Discovery                  | Adzuna API               | Job search and discovery                         |
-| AI model                       | OpenAI GPT-4o            | Matching, research synthesis, extraction         |
+| AI model                       | Google Gemini 2.5 Flash  | Matching, research synthesis, extraction         |
 | Analytics                      | PostHog                  | Event tracking and dashboard charts              |
 | PDF generation                 | @react-pdf/renderer      | Resume PDF rendering                             |
 | Styling                        | Tailwind CSS + shadcn/ui | UI components and styling                        |
@@ -56,10 +56,10 @@
 │       │   ├── generate/route.ts          → Generate base resume PDF from profile
 │       │   └── extract/route.ts           → Extract profile data from uploaded resume PDF
 ├── agent/
-│   ├── adzuna.ts                          → Adzuna API job discovery + GPT-4o scoring
-│   ├── research.ts                        → Company research — Browserbase + Stagehand + GPT-4o
-│   ├── matcher.ts                         → GPT-4o job matching logic
-│   ├── extractor.ts                       → GPT-4o job description extraction + structuring
+│   ├── adzuna.ts                          → Adzuna API job discovery + Gemini scoring
+│   ├── research.ts                        → Company research — Playwright + Stagehand + Gemini
+│   ├── matcher.ts                         → Gemini job matching logic
+│   ├── extractor.ts                       → Gemini job description extraction + structuring
 │   └── types.ts                           → Agent-specific TypeScript types
 ├── actions/
 │   ├── profile.ts                         → Profile save + update
@@ -96,8 +96,7 @@
 ├── lib/
 │   ├── insforge-client.ts                 → InsForge browser client instance
 │   ├── insforge-server.ts                 → InsForge server client
-│   ├── browserbase.ts                     → Browserbase session creation + management
-│   ├── stagehand.ts                       → Stagehand initialisation with Browserbase session
+│   ├── stagehand.ts                       → Stagehand initialisation with local Playwright
 │   ├── adzuna.ts                          → Adzuna API client
 │   ├── posthog-client.ts                  → PostHog browser client
 │   ├── posthog-server.ts                  → PostHog server client
@@ -146,7 +145,7 @@ Calls agent/adzuna.ts
         ↓
 Adzuna API returns job listings
         ↓
-GPT-4o scores each job against user profile
+Gemini scores each job against user profile
         ↓
 Agent writes results to InsForge DB
         ↓
@@ -162,11 +161,11 @@ API route in app/api/agent/research
         ↓
 Calls agent/research.ts
         ↓
-Single Browserbase session opens with Stagehand
+Stagehand launches local Playwright/Chromium browser
         ↓
 Navigates to company homepage + sub pages
         ↓
-GPT-4o synthesizes dossier from extracted content
+Gemini synthesizes dossier from extracted content
         ↓
 Dossier saved to jobs.company_research
         ↓
@@ -180,7 +179,7 @@ User uploads resume or clicks Generate
         ↓
 API route in app/api/resume/
         ↓
-GPT-4o processes content
+Gemini processes content
         ↓
 @react-pdf/renderer renders PDF buffer
         ↓
@@ -257,10 +256,12 @@ URL saved to profiles table
 | benefits           | text[]      | Optional                                       |
 | about_company      | text        | Brief company description                      |
 | match_score        | integer     | 0-100 scored against main profile              |
-| match_reason       | text        | GPT-4o explanation                             |
+| match_reason       | text        | Gemini explanation                             |
 | matched_skills     | text[]      | Skills user has that match                     |
 | missing_skills     | text[]      | Skills user lacks                              |
 | company_research   | jsonb       | Company dossier from research agent            |
+| interview_prep     | jsonb       | Interview prep materials from Gemini           |
+| email_templates    | jsonb       | Application email templates from Gemini        |
 | found_at           | timestamptz |                                                |
 
 ### `agent_logs`
@@ -337,14 +338,13 @@ export const createInsforgeServer = async () => {
 
 ---
 
-## Browserbase Session Pattern
+## Browser Session Pattern
 
 ```typescript
-// Company research session — single session, sequential page visits
-const session = await bb.sessions.create({
-  projectId: process.env.BROWSERBASE_PROJECT_ID!,
-  timeout: 120, // 2 minute session — visits 3-4 pages max
-});
+// Company research — local Playwright Chromium browser
+const browser = await chromium.launch({ headless: true });
+const context = await browser.newContext();
+const page = await context.newPage();
 ```
 
 ---
@@ -375,18 +375,14 @@ const data = await response.json();
 ## Company Research Pattern
 
 ```typescript
-// Single session — visits company homepage and sub pages sequentially
-const stagehand = new Stagehand({
-  env: "BROWSERBASE",
-  apiKey: process.env.BROWSERBASE_API_KEY!,
-  projectId: process.env.BROWSERBASE_PROJECT_ID!,
-  browserbaseSessionID: session.id,
-  modelName: "gpt-4o",
-  modelClientOptions: { apiKey: process.env.OPENAI_API_KEY! },
-});
+// Local Playwright browser — visits company homepage and sub pages sequentially
+import { chromium } from "playwright";
+import { Stagehand } from "stagehand";
 
+const browser = await chromium.launch({ headless: true });
+const stagehand = new Stagehand({ browser });
 await stagehand.init();
-const page = stagehand.page;
+const page = stagehand.context.activePage()!;
 
 // Clean company name and construct homepage URL
 const cleanName = companyName
@@ -403,12 +399,13 @@ try {
   await page.waitForLoadState("networkidle");
   const content = await stagehand.extract({ instruction: "..." });
 } catch (error) {
-  // Log and continue — GPT-4o will synthesize from what was found
+  // Log and continue — Gemini will synthesize from what was found
   await logAgentError(jobId, error);
 }
 
-// Always close session when done
+// Always close browser when done
 await stagehand.close();
+await browser.close();
 ```
 
 ---
@@ -423,8 +420,8 @@ Rules the AI agent must never violate:
 - All InsForge server-side writes use `createInsforgeServer()` — never the browser client.
 - No hardcoded hex values or raw Tailwind color classes in components — use CSS variables from ui-tokens.md.
 - Every Stagehand action is wrapped in try/catch. Failures are logged to agent_logs, never thrown to crash the run.
-- Company research always returns a dossier — even if browser research fails, GPT-4o synthesizes from company name and job description alone. Never return empty.
-- Browserbase sessions are always closed with stagehand.close() when done — never leave sessions open.
+- Company research always returns a dossier — even if browser research fails, Gemini synthesizes from company name and job description alone. Never return empty.
+- Browser sessions are always closed with stagehand.close() and browser.close() when done — never leave browsers open.
 - Always scope InsForge queries to the current user_id — never query without a user filter.
 - Adzuna API always includes category=it-jobs — never search without this filter.
 - jobs.source is always 'search' or 'url' — never any other value.

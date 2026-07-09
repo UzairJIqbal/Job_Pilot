@@ -88,11 +88,13 @@ className="bg-purple-500 text-gray-600"
 
   /* Warning — orange */
   --color-warning: #ff8904;
-  --color-warning-foreground: #ffffff;
+  --color-warning-lightest: #fff7ed;
+  --color-warning-foreground: #c2410c;
 
   /* Error — red */
   --color-error: #ef4444;
-  --color-error-foreground: #ffffff;
+  --color-error-lightest: #fef2f2;
+  --color-error-foreground: #dc2626;
 
   /* LinkedIn brand */
   --color-linkedin: #0a66c2;

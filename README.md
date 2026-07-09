@@ -34,11 +34,7 @@ The agent finds jobs via Adzuna, scores each one against your actual skills usin
 
 ## Screenshots
 
-<div align="center">
-
 ![Dashboard](public/images/dashboard-demo.png)
-
-</div>
 
 ## Tech Stack
 

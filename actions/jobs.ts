@@ -2,12 +2,13 @@
 
 import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
-import type { JobStatus } from "@/lib/job-status";
+import { JOB_STATUSES, type JobStatus } from "@/lib/job-status";
 
 export async function updateJobStatus(
   jobId: string,
   status: JobStatus
 ): Promise<{ success: boolean; error?: string }> {
+  if (!JOB_STATUSES.includes(status)) return { success: false, error: "Unknown status" };
   try {
     const insforge = await createInsforgeServer();
     const { data: authData } = await insforge.auth.getCurrentUser();

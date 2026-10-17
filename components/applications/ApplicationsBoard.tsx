@@ -12,7 +12,9 @@ import { timeAgo } from "@/lib/utils";
 const STAGE_DOT: Record<JobStatus, string> = {
   saved: "bg-text-muted",
   applied: "bg-info",
+  replied: "bg-warning",
   interviewing: "bg-success",
+  offer: "bg-success-dark",
   rejected: "bg-error",
 };
 
@@ -150,7 +152,7 @@ export function ApplicationsBoard({ initialJobs }: { initialJobs: PipelineJob[] 
         </p>
       )}
 
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
+      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-3">
         {PIPELINE_STAGES.map((stage) => {
           const items = visible.filter((j) => j.status === stage.status);
           return (

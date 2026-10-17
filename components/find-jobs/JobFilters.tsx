@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { JOB_STATUSES, STATUS_LABELS } from "@/lib/job-status";
 
 type JobFiltersProps = {
   filter: string;
@@ -84,10 +85,11 @@ export function JobFilters({
             className="h-10 appearance-none rounded-lg border border-border bg-surface pr-8 pl-3 text-sm font-medium text-text-primary focus:border-accent focus:ring-1 focus:ring-accent"
           >
             <option value="all">All Statuses</option>
-            <option value="saved">Saved</option>
-            <option value="applied">Applied</option>
-            <option value="interviewing">Interviewing</option>
-            <option value="rejected">Rejected</option>
+            {JOB_STATUSES.map((s) => (
+              <option key={s} value={s}>
+                {STATUS_LABELS[s]}
+              </option>
+            ))}
           </select>
           <svg
             className="pointer-events-none absolute right-2.5 top-1/2 h-4 w-4 -translate-y-1/2 text-text-muted"

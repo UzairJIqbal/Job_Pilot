@@ -94,7 +94,8 @@ export async function POST(req: NextRequest) {
         title: job.title,
         company: job.company,
         matchScore: score?.matchScore ?? null,
-        warning: excluded,
+        // An unscored job never reaches the queue, so say so.
+        warning: excluded ?? (score ? null : "it couldn't be scored right now, so it won't be drafted"),
       },
     });
   } catch (error) {

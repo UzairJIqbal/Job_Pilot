@@ -36,7 +36,7 @@ const gridStyle = {
 
 const axisStyle = {
   fontSize: 12,
-  fontFamily: "Inter, sans-serif",
+  fontFamily: "var(--font-sans)",
   fill: "var(--color-text-muted)",
 };
 
@@ -70,7 +70,7 @@ export function AnalyticsCharts({
   return (
     <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
       {/* Company Research Activity */}
-      <div className="rounded-2xl border border-border bg-surface p-6">
+      <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
         <h3 className="mb-4 text-sm font-semibold text-text-primary">
           Company Research Activity
         </h3>
@@ -96,7 +96,7 @@ export function AnalyticsCharts({
       {/* Right column */}
       <div className="flex flex-col gap-6">
         {/* Jobs Found Over Time */}
-        <div className="rounded-2xl border border-border bg-surface p-6">
+        <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
           <h3 className="mb-4 text-sm font-semibold text-text-primary">
             Jobs Found Over Time
           </h3>
@@ -132,7 +132,7 @@ export function AnalyticsCharts({
         </div>
 
         {/* Match Score Distribution */}
-        <div className="rounded-2xl border border-border bg-surface p-6">
+        <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
           <h3 className="mb-4 text-sm font-semibold text-text-primary">
             Match Score Distribution
           </h3>

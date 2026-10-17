@@ -4,37 +4,7 @@ import { createInsforgeServer } from "@/lib/insforge-server";
 import { SignOutButton } from "./SignOutButton";
 import { PostHogIdentify } from "@/components/PostHogIdentify";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
-
-function LogoIcon(): ReactElement {
-  return (
-    <svg
-      width="36"
-      height="36"
-      viewBox="0 0 36 36"
-      fill="none"
-      xmlns="http://www.w3.org/2000/svg"
-      aria-hidden="true"
-    >
-      <defs>
-        <linearGradient id="logo-gradient" x1="0%" y1="0%" x2="100%" y2="100%">
-          <stop offset="0%" stopColor="var(--color-accent)" />
-          <stop offset="100%" stopColor="#4361EE" />
-        </linearGradient>
-      </defs>
-      <rect width="36" height="36" rx="10" fill="url(#logo-gradient)" />
-      <path
-        d="M10 24L18 10L26 24H10Z"
-        fill="white"
-        fillOpacity="0.95"
-      />
-      <path
-        d="M18 14L22 22H14L18 14Z"
-        fill="white"
-        fillOpacity="0.5"
-      />
-    </svg>
-  );
-}
+import { LogoMark } from "./Logo";
 
 const navItems: Array<{ href: string; label: string }> = [
   { href: "/dashboard", label: "Dashboard" },
@@ -58,10 +28,10 @@ export async function Navbar(): Promise<ReactElement> {
   return (
     <header className="border-b border-border bg-surface">
       {user && <PostHogIdentify userId={user.id} email={user.email} />}
-      <div className="mx-auto flex h-16 w-full max-w-282 items-center justify-between px-5">
+      <div className="mx-auto flex h-16 w-full max-w-content items-center justify-between px-5">
         <Link href="/" aria-label="JobPilot home" className="inline-flex items-center gap-2">
-          <LogoIcon />
-          <span className="text-sm font-semibold leading-5 text-text-slate">JobPilot</span>
+          <LogoMark gradientId="nav-logo-gradient" />
+          <span className="text-sm font-semibold leading-5 text-text-primary">JobPilot</span>
         </Link>
 
         <nav aria-label="Primary navigation" className="hidden items-center gap-10 md:flex">

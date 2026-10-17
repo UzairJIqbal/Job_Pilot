@@ -19,3 +19,13 @@ export function normalizeStatus(dbStatus: string | null | undefined): JobStatus 
   if (dbStatus === "applied" || dbStatus === "interviewing" || dbStatus === "rejected") return dbStatus;
   return "saved";
 }
+
+export const JOB_STATUSES: JobStatus[] = ["saved", "applied", "interviewing", "rejected"];
+
+/** Pipeline columns, in the order a job moves through them. */
+export const PIPELINE_STAGES: Array<{ status: JobStatus; title: string; empty: string }> = [
+  { status: "saved", title: "Saved", empty: "Jobs you keep from a search land here." },
+  { status: "applied", title: "Applied", empty: "Mark a job as applied once you've sent it." },
+  { status: "interviewing", title: "Interviewing", empty: "No interviews yet — they'll show up here." },
+  { status: "rejected", title: "Closed", empty: "Roles that didn't work out." },
+];

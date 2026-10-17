@@ -15,7 +15,7 @@ const dotColors: Record<Activity["type"], string> = {
 export function RecentActivity({ activities }: { activities: Activity[] }) {
   if (activities.length === 0) {
     return (
-      <div className="rounded-2xl border border-border bg-surface p-6">
+      <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
         <h3 className="mb-4 text-sm font-semibold text-text-primary">
           Recent Activity
         </h3>
@@ -27,7 +27,7 @@ export function RecentActivity({ activities }: { activities: Activity[] }) {
   }
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-6">
+    <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
       <h3 className="mb-4 text-sm font-semibold text-text-primary">
         Recent Activity
       </h3>

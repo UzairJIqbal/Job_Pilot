@@ -117,7 +117,7 @@ export function CompletionIndicator({ profile }: CompletionIndicatorProps) {
           {missingFields.map((field) => (
             <span
               key={field}
-              className="inline-flex items-center rounded-full bg-[#fff4ed] px-3 py-1 text-xs font-medium text-warning"
+              className="inline-flex items-center rounded-full bg-warning-lightest px-3 py-1 text-xs font-medium text-warning-foreground"
             >
               {field}
             </span>

@@ -1,6 +1,8 @@
-import { Navbar } from "@/components/layout/Navbar";
-import { Footer } from "@/components/layout/Footer";
-import { PostHogIdentify } from "@/components/PostHogIdentify";
+import Link from "next/link";
+import { Search } from "lucide-react";
+import { PageHeader } from "@/components/layout/PageHeader";
+import { NeedsYou, PipelineStrip, TopMatches } from "@/components/dashboard/MissionControl";
+import { getPipelineJobs, getNextActions, countByStatus } from "@/lib/pipeline";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { StatsBar } from "@/components/dashboard/StatsBar";
 import type { DashboardStats } from "@/components/dashboard/StatsBar";
@@ -208,46 +210,75 @@ async function getRecentActivity(userId: string): Promise<Activity[]> {
 
 export default async function DashboardPage() {
   let userId: string | undefined;
-  let email: string | undefined;
 
   try {
     const insforge = await createInsforgeServer();
     const { data } = await insforge.auth.getCurrentUser();
     userId = data?.user?.id;
-    email = data?.user?.email;
   } catch {
-    // Not authenticated — identity not set
+    // Not authenticated — proxy.ts redirects before we get here
   }
 
-  const { stats, jobs } = userId
-    ? await getDashboardData(userId)
-    : { stats: { totalJobs: 0, avgMatchRate: 0, companiesResearched: 0, jobsThisWeek: 0, appliedCount: 0 }, jobs: [] };
+  const emptyStats: DashboardStats = { totalJobs: 0, avgMatchRate: 0, companiesResearched: 0, jobsThisWeek: 0, appliedCount: 0 };
+
+  const [{ stats, jobs }, pipelineJobs, activities] = userId
+    ? await Promise.all([getDashboardData(userId), getPipelineJobs(userId), getRecentActivity(userId)])
+    : [{ stats: emptyStats, jobs: [] }, [], []];
 
   const chartData = computeChartData(jobs);
-
   const skillsGap = computeSkillsGap(jobs);
 
-  const activities = userId ? await getRecentActivity(userId) : [];
+  const nextActions = getNextActions(pipelineJobs);
+  const counts = countByStatus(pipelineJobs);
+  const topMatches = pipelineJobs.filter((j) => j.status === "saved").slice(0, 5);
+
+  const summary =
+    nextActions.length === 0
+      ? "You're all caught up."
+      : `${nextActions.length} ${nextActions.length === 1 ? "thing needs" : "things need"} your attention.`;
 
   return (
-    <div className="flex min-h-screen flex-col">
-      {userId && <PostHogIdentify userId={userId} email={email} />}
-      <Navbar />
-      <main className="flex-1 px-6 py-8">
-        <div className="mx-auto max-w-6xl space-y-6">
-          <StatsBar stats={stats} />
-          <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
-            <RecentActivity activities={activities} />
-            <AnalyticsCharts
-              jobsFoundData={chartData.jobsFoundData}
-              matchScoreData={chartData.matchScoreData}
-              companyResearchData={chartData.companyResearchData}
-            />
-          </div>
-          <SkillsGapChart skills={skillsGap} />
+    <div className="space-y-8">
+      <PageHeader
+        title="Home"
+        description={summary}
+        actions={
+          <Link
+            href="/find-jobs"
+            className="inline-flex h-9 items-center gap-2 rounded-md bg-accent px-4 text-sm font-medium text-accent-foreground transition-colors hover:bg-accent-dark"
+          >
+            <Search className="h-4 w-4" />
+            Find jobs
+          </Link>
+        }
+      />
+
+      <PipelineStrip counts={counts} />
+
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-5">
+        <div className="lg:col-span-3">
+          <NeedsYou actions={nextActions} />
         </div>
-      </main>
-      <Footer />
+        <div className="lg:col-span-2">
+          <TopMatches jobs={topMatches} />
+        </div>
+      </div>
+
+      <section aria-labelledby="insights-heading" className="space-y-6">
+        <h2 id="insights-heading" className="text-sm font-semibold uppercase tracking-wide text-text-muted">
+          Insights
+        </h2>
+        <StatsBar stats={stats} />
+        <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+          <RecentActivity activities={activities} />
+          <AnalyticsCharts
+            jobsFoundData={chartData.jobsFoundData}
+            matchScoreData={chartData.matchScoreData}
+            companyResearchData={chartData.companyResearchData}
+          />
+        </div>
+        <SkillsGapChart skills={skillsGap} />
+      </section>
     </div>
   );
 }

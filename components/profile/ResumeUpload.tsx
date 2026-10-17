@@ -153,8 +153,8 @@ export function ResumeUpload({ resumeUrl, onUploadComplete, onExtractComplete, o
       </h3>
 
       {resumeUrl ? (
-        <div className="flex items-center gap-3 rounded-lg border border-green-200 bg-green-50 px-4 py-3">
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-green-600">
+        <div className="flex items-center gap-3 rounded-lg border border-success-light bg-success-lightest px-4 py-3">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" className="shrink-0 text-success-foreground">
             <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z" />
             <polyline points="14 2 14 8 20 8" />
             <line x1="16" y1="13" x2="8" y2="13" />
@@ -164,14 +164,14 @@ export function ResumeUpload({ resumeUrl, onUploadComplete, onExtractComplete, o
             href="/api/resume/view"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex-1 text-sm font-medium text-green-800 underline hover:text-green-900"
+            className="flex-1 text-sm font-medium text-success-foreground underline hover:opacity-80"
           >
             Resume uploaded
           </a>
           <button
             type="button"
             onClick={handleClick}
-            className="text-xs font-medium text-green-700 underline hover:text-green-900"
+            className="text-xs font-medium text-success-foreground underline hover:opacity-80"
           >
             Replace
           </button>
@@ -234,13 +234,13 @@ export function ResumeUpload({ resumeUrl, onUploadComplete, onExtractComplete, o
         <p className="mt-3 text-sm text-text-secondary">Generating resume PDF...</p>
       )}
       {error && (
-        <p className="mt-3 text-sm text-red-600">{error}</p>
+        <p className="mt-3 text-sm text-error-foreground">{error}</p>
       )}
       {extractError && (
-        <p className="mt-3 text-sm text-red-600">{extractError}</p>
+        <p className="mt-3 text-sm text-error-foreground">{extractError}</p>
       )}
       {generateError && (
-        <p className="mt-3 text-sm text-red-600">{generateError}</p>
+        <p className="mt-3 text-sm text-error-foreground">{generateError}</p>
       )}
 
       <div className="mt-4 flex flex-wrap gap-3">

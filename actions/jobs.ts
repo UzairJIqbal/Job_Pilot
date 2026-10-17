@@ -25,6 +25,8 @@ export async function updateJobStatus(
       return { success: false, error: "Failed to update job status" };
     }
 
+    revalidatePath("/dashboard");
+    revalidatePath("/applications");
     revalidatePath("/find-jobs");
     revalidatePath(`/find-jobs/${jobId}`);
     return { success: true };

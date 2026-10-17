@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { MATCH_THRESHOLD, timeAgo, parseMarkdown } from "@/lib/utils";
-import { SearchControls } from "@/components/find-jobs/SearchControls";
 import { CompanyResearchCard } from "@/components/job-details/CompanyResearchCard";
 import { InterviewPrepCard } from "@/components/job-details/InterviewPrepCard";
 import { EmailTemplatesCard } from "@/components/job-details/EmailTemplatesCard";
@@ -102,12 +101,7 @@ export function JobDetailsClient({ job }: JobDetailsClientProps) {
   const hasResearch = job.company_research !== null;
 
   return (
-    <main className="flex-1 px-6 py-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <h1 className="text-xl font-semibold text-text-primary">Find Jobs</h1>
-
-        <SearchControls />
-
+    <div className="space-y-6">
         <div className="rounded-xl border border-border bg-surface px-6 py-5">
           {/* Back Link */}
           <button
@@ -514,34 +508,39 @@ export function JobDetailsClient({ job }: JobDetailsClientProps) {
         </div>
 
         {/* Company Research — separate card below main job card */}
-        <CompanyResearchCard
-          jobId={job.id}
-          company={job.company}
-          hasResearch={hasResearch}
-          research={job.company_research}
-        />
+        <div id="company-research" className="scroll-mt-20">
+          <CompanyResearchCard
+            jobId={job.id}
+            company={job.company}
+            hasResearch={hasResearch}
+            research={job.company_research}
+          />
+        </div>
 
         {/* Interview Prep — separate card below company research */}
-        <InterviewPrepCard
-          jobId={job.id}
-          company={job.company}
-          hasPrep={job.interview_prep !== null}
-          prep={job.interview_prep}
-        />
+        <div id="interview-prep" className="scroll-mt-20">
+          <InterviewPrepCard
+            jobId={job.id}
+            company={job.company}
+            hasPrep={job.interview_prep !== null}
+            prep={job.interview_prep}
+          />
+        </div>
 
         {/* Email Templates — separate card below interview prep */}
-        <EmailTemplatesCard
-          jobId={job.id}
-          company={job.company}
-          hasTemplates={job.email_templates !== null}
-          templates={job.email_templates}
-        />
+        <div id="email-templates" className="scroll-mt-20">
+          <EmailTemplatesCard
+            jobId={job.id}
+            company={job.company}
+            hasTemplates={job.email_templates !== null}
+            templates={job.email_templates}
+          />
+        </div>
 
         <p className="text-center text-xs text-text-muted">
           Jobs by Adzuna
         </p>
-      </div>
-    </main>
+    </div>
   );
 }
 

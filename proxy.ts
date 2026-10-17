@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { updateSession, type UpdateSessionOptions } from "@insforge/sdk/ssr/middleware";
 
-const protectedRoutes = ["/dashboard", "/profile", "/find-jobs"];
+const protectedRoutes = ["/dashboard", "/applications", "/profile", "/find-jobs"];
 
 export default async function proxy(request: NextRequest) {
   const { pathname } = request.nextUrl;

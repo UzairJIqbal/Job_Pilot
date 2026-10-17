@@ -1,55 +1,49 @@
 @import "tailwindcss";
 
 @theme {
-  --font-sans: "Inter", sans-serif;
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
 
+  /* ── Core palette ────────────────────────────────────────────
+     Components should use these. Everything below "Legacy aliases"
+     points back at them so dark mode only needs to redefine the core. */
   --color-background: #f6f7fb;
   --color-surface: #ffffff;
-  --color-surface-secondary: #f9fafb;
-  --color-surface-tertiary: #f2f5f7;
-  --color-surface-muted: #f4f5fb;
+  --color-surface-secondary: #f8f9fc;
+  --color-surface-tertiary: #f1f3f8;
+  --color-border: #e5e8f0;
+  --color-border-strong: #d5d9e4;
 
-  --color-border: #e7eaf3;
-  --color-border-light: #e5e7eb;
-  --color-border-muted: #dfe1e7;
-
-  --color-text-primary: #101828;
-  --color-text-secondary: #6a7282;
-  --color-text-muted: #99a1af;
-  --color-text-dark: #364153;
-  --color-text-darker: #36394a;
-  --color-text-darkest: #111827;
-  --color-text-black: #131316;
-  --color-text-slate: #272835;
-  --color-text-slate-medium: #666d80;
+  --color-text-primary: #111827;
+  --color-text-secondary: #5b6474;
+  --color-text-muted: #98a1b0;
 
   --color-accent: #7c5cfc;
-  --color-accent-dark: #5e4cff;
-  --color-accent-light: #f3e8ff;
-  --color-accent-muted: #faf5ff;
+  --color-accent-dark: #6646f0;
+  --color-accent-light: #efeaff;
+  --color-accent-muted: #f8f5ff;
   --color-accent-foreground: #ffffff;
 
   --color-success: #10b981;
-  --color-success-alt: #00bc7d;
-  --color-success-dark: #007a55;
-  --color-success-darker: #009966;
-  --color-success-light: #d0fae5;
+  --color-success-dark: #047857;
+  --color-success-light: #d1fae5;
   --color-success-lightest: #ecfdf5;
-  --color-success-foreground: #007a55;
+  --color-success-foreground: #047857;
 
-  --color-info: #61a8ff;
-  --color-info-dark: #155dfc;
-  --color-info-medium: #2b7fff;
+  --color-info: #3b82f6;
+  --color-info-dark: #1d4ed8;
   --color-info-light: #dbeafe;
   --color-info-lightest: #eff6ff;
-  --color-info-foreground: #155dfc;
+  --color-info-darker: #1e40af;
+  --color-info-foreground: #1d4ed8;
   --color-info-muted: #94a2c5;
 
-  --color-warning: #ff8904;
+  --color-warning: #f59e0b;
+  --color-warning-light: #fde9c8;
   --color-warning-lightest: #fff7ed;
-  --color-warning-foreground: #c2410c;
+  --color-warning-foreground: #b45309;
 
   --color-error: #ef4444;
+  --color-error-light: #fecaca;
   --color-error-lightest: #fef2f2;
   --color-error-foreground: #dc2626;
 
@@ -58,19 +52,38 @@
   --color-linkedin-foreground: #ffffff;
 
   --color-overlay: #111827;
-  --color-overlay-dark: #131316;
-
-  --color-chart-axis: #9ca3af;
+  --color-overlay-dark: #0b0f19;
   --color-logo-gradient-end: #4a2ec5;
 
-  --radius-sm: 4px;
+  /* ── Legacy aliases (kept so existing classes keep working) ── */
+  --color-surface-muted: var(--color-surface-secondary);
+  --color-border-light: var(--color-border);
+  --color-border-muted: var(--color-border-strong);
+  --color-text-dark: var(--color-text-primary);
+  --color-text-darker: var(--color-text-primary);
+  --color-text-darkest: var(--color-text-primary);
+  --color-text-black: var(--color-text-primary);
+  --color-text-slate: var(--color-text-primary);
+  --color-text-slate-medium: var(--color-text-secondary);
+  --color-success-alt: var(--color-success);
+  --color-success-darker: var(--color-success-dark);
+  --color-info-medium: var(--color-info);
+  --color-chart-axis: var(--color-text-muted);
+
+  /* ── Shape & depth ── */
+  --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
   --radius-xl: 16px;
+  --radius-2xl: 16px;
   --radius-full: 9999px;
 
-  --shadow-card:
-    0px 1px 3px rgba(0, 0, 0, 0.1), 0px 1px 2px -1px rgba(0, 0, 0, 0.1);
+  --shadow-card: 0 1px 2px rgba(16, 24, 40, 0.04), 0 1px 3px rgba(16, 24, 40, 0.06);
+  --shadow-pop: 0 12px 32px -8px rgba(16, 24, 40, 0.18);
+
+  /* ── App shell ── */
+  --spacing-sidebar: 15rem;
+  --container-content: 72rem;
 }
 
 :root {
@@ -80,63 +93,47 @@
 .dark {
   color-scheme: dark;
 
-  /* Page + surfaces */
-  --color-background: #0f1117;
-  --color-surface: #1a1d27;
-  --color-surface-secondary: #22252f;
-  --color-surface-tertiary: #2a2d38;
-  --color-surface-muted: #1e2130;
+  --color-background: #0d0f15;
+  --color-surface: #161922;
+  --color-surface-secondary: #1c2029;
+  --color-surface-tertiary: #252a35;
+  --color-border: #2a2f3c;
+  --color-border-strong: #3a4050;
 
-  /* Borders */
-  --color-border: #2e3140;
-  --color-border-light: #363a4a;
-  --color-border-muted: #3a3e50;
+  --color-text-primary: #eceef3;
+  --color-text-secondary: #a3abbb;
+  --color-text-muted: #6f7787;
 
-  /* Text */
-  --color-text-primary: #e8eaf0;
-  --color-text-secondary: #9ca3b8;
-  --color-text-muted: #6b7280;
-  --color-text-dark: #c4c8d4;
-  --color-text-darker: #d0d4e0;
-  --color-text-darkest: #eef0f4;
-  --color-text-black: #f4f5f7;
-  --color-text-slate: #dce0e8;
-  --color-text-slate-medium: #9ca3b8;
+  --color-accent: #8f76ff;
+  --color-accent-dark: #7a5ff0;
+  --color-accent-light: #2a2245;
+  --color-accent-muted: #1d1a2e;
 
-  /* Accent (stays vibrant on dark) */
-  --color-accent: #8b6fff;
-  --color-accent-dark: #a78bff;
-  --color-accent-light: #2a2040;
-  --color-accent-muted: #1e1830;
-
-  /* Success */
   --color-success: #34d399;
-  --color-success-light: #0d3025;
-  --color-success-lightest: #0f2920;
+  --color-success-light: #0f3b2e;
+  --color-success-lightest: #0f261f;
   --color-success-foreground: #6ee7b7;
 
-  /* Info */
   --color-info: #60a5fa;
-  --color-info-light: #1e2a40;
-  --color-info-lightest: #172033;
+  --color-info-light: #1e2c47;
+  --color-info-lightest: #141d30;
   --color-info-foreground: #93c5fd;
   --color-info-muted: #4a5a80;
 
-  /* Warning */
   --color-warning: #fbbf24;
-  --color-warning-lightest: #2a2210;
+  --color-warning-light: #3d2f10;
+  --color-warning-lightest: #261e0d;
   --color-warning-foreground: #fcd34d;
 
-  /* Error */
   --color-error: #f87171;
-  --color-error-lightest: #2d1515;
+  --color-error-light: #4a1d1d;
+  --color-error-lightest: #2a1414;
   --color-error-foreground: #fca5a5;
 
-  /* LinkedIn */
-  --color-linkedin-light: #1a2a3a;
+  --color-linkedin-light: #172636;
 
-  /* Shadow — more subtle on dark */
-  --shadow-card: 0px 1px 3px rgba(0, 0, 0, 0.3), 0px 1px 2px -1px rgba(0, 0, 0, 0.3);
+  --shadow-card: 0 1px 2px rgba(0, 0, 0, 0.3), 0 1px 3px rgba(0, 0, 0, 0.25);
+  --shadow-pop: 0 12px 32px -8px rgba(0, 0, 0, 0.6);
 }
 
 body {
@@ -144,6 +141,7 @@ body {
   background: var(--color-background);
   color: var(--color-text-primary);
   font-family: var(--font-sans);
+  font-feature-settings: "cv11", "ss01";
 }
 
 .landing-gradient {

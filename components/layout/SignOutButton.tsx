@@ -6,7 +6,7 @@ import { signOut } from "@/actions/auth";
 import posthog from "posthog-js";
 import { initPostHog } from "@/lib/posthog-client";
 
-export function SignOutButton() {
+export function SignOutButton({ className = "" }: { className?: string }) {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
 
@@ -28,7 +28,7 @@ export function SignOutButton() {
       type="button"
       onClick={handleSignOut}
       disabled={loading}
-      className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-5 text-sm font-medium leading-5 text-text-primary transition-colors hover:bg-surface-secondary disabled:opacity-50"
+      className={`inline-flex h-9 items-center justify-center rounded-md border border-border bg-surface px-5 text-sm font-medium leading-5 text-text-primary transition-colors hover:bg-surface-tertiary disabled:opacity-50 ${className}`}
     >
       {loading ? "Signing out..." : "Sign out"}
     </button>

@@ -23,7 +23,7 @@ const gridStyle = {
 
 const axisStyle = {
   fontSize: 12,
-  fontFamily: "Inter, sans-serif",
+  fontFamily: "var(--font-sans)",
   fill: "var(--color-text-muted)",
 };
 
@@ -39,7 +39,7 @@ export function SkillsGapChart({ skills }: SkillsGapChartProps) {
   const hasData = skills.length > 0;
 
   return (
-    <div className="rounded-2xl border border-border bg-surface p-6">
+    <div className="rounded-xl border border-border bg-surface p-5 shadow-card">
       <h3 className="mb-4 text-sm font-semibold text-text-primary">
         Top Missing Skills
       </h3>

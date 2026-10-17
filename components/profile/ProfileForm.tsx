@@ -561,10 +561,10 @@ export function ProfileForm({ profile, onChange }: Props) {
           {isSaving ? "Saving..." : "Save Profile"}
         </button>
         {saveMessage && (
-          <p className="text-sm text-green-600">{saveMessage}</p>
+          <p className="text-sm text-success-foreground">{saveMessage}</p>
         )}
         {saveError && (
-          <p className="text-sm text-red-600">{saveError}</p>
+          <p className="text-sm text-error-foreground">{saveError}</p>
         )}
       </div>
     </form>

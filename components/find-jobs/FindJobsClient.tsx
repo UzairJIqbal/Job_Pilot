@@ -1,5 +1,6 @@
 "use client";
 
+import { PageHeader } from "@/components/layout/PageHeader";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { MATCH_THRESHOLD } from "@/lib/utils";
 import { SearchControls } from "./SearchControls";
@@ -211,9 +212,12 @@ export function FindJobsClient() {
   );
 
   return (
-    <main className="flex-1 px-6 py-8">
-      <div className="mx-auto max-w-6xl space-y-6">
-        <h1 className="text-xl font-semibold text-text-primary">Find Jobs</h1>
+    <>
+      <div className="space-y-6">
+        <PageHeader
+          title="Find jobs"
+          description="Search live listings — every result is scored against your profile."
+        />
 
         <SearchControls
           onSearch={handleSearch}
@@ -279,6 +283,6 @@ export function FindJobsClient() {
           setActiveStep(0);
         }}
       />
-    </main>
+    </>
   );
 }

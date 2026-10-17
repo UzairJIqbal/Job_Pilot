@@ -1,5 +1,6 @@
 import Link from "next/link";
 import type { ReactElement } from "react";
+import { LogoMark } from "./Logo";
 
 const footerLinks: Array<{ href: string; label: string }> = [
   { href: "/dashboard", label: "Dashboard" },
@@ -49,46 +50,10 @@ const socialLinks: Array<{ href: string; label: string; icon: ReactElement }> = 
 export function Footer(): ReactElement {
   return (
     <footer className="border-x border-t border-border bg-surface">
-      <div className="mx-auto flex min-h-28 w-full max-w-[1128px] flex-col justify-center gap-6 px-8 py-8 md:flex-row md:items-center md:justify-between">
+      <div className="mx-auto flex min-h-28 w-full max-w-content flex-col justify-center gap-6 px-5 py-8 md:flex-row md:items-center md:justify-between">
         <Link href="/" aria-label="JobPilot home" className="inline-flex items-center gap-2">
-          <svg
-            width="36"
-            height="36"
-            viewBox="0 0 36 36"
-            fill="none"
-            xmlns="http://www.w3.org/2000/svg"
-            aria-hidden="true"
-          >
-            <defs>
-              <linearGradient
-                id="footer-logo-gradient"
-                x1="0%"
-                y1="0%"
-                x2="100%"
-                y2="100%"
-              >
-                <stop offset="0%" stopColor="var(--color-accent)" />
-                <stop offset="100%" stopColor="#4361EE" />
-              </linearGradient>
-            </defs>
-            <rect
-              width="36"
-              height="36"
-              rx="10"
-              fill="url(#footer-logo-gradient)"
-            />
-            <path
-              d="M10 24L18 10L26 24H10Z"
-              fill="white"
-              fillOpacity="0.95"
-            />
-            <path
-              d="M18 14L22 22H14L18 14Z"
-              fill="white"
-              fillOpacity="0.5"
-            />
-          </svg>
-          <span className="text-sm font-semibold leading-5 text-text-slate">JobPilot</span>
+          <LogoMark gradientId="footer-logo-gradient" />
+          <span className="text-sm font-semibold leading-5 text-text-primary">JobPilot</span>
         </Link>
 
         <nav aria-label="Footer navigation" className="flex flex-wrap items-center gap-8">

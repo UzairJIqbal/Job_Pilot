@@ -52,7 +52,7 @@ export function StatsBar({ stats }: { stats: DashboardStats }) {
         return (
           <div
             key={stat.label}
-            className="rounded-2xl border border-border bg-surface p-6"
+            className="rounded-xl border border-border bg-surface p-5 shadow-card"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">

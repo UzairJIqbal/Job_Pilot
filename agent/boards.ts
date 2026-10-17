@@ -141,6 +141,7 @@ export async function discoverFromBoards(params: {
     let saved = 0;
     let scored = 0;
     let delay = SCORE_DELAY_MS;
+    let outOfQuota = false;
 
     for (const { job: listed } of ranked) {
       if (scored >= scoreLimit) break;
@@ -186,7 +187,10 @@ export async function discoverFromBoards(params: {
         console.error("[agent/boards] scoring failed:", job.company, job.title, error);
         await log(client, userId, runId, "error", error instanceof Error ? error.message : String(error));
         // Out of quota for hours: stop scoring rather than sleep through it.
-        if (apiDelay && apiDelay > MAX_RETRY_DELAY_MS) break;
+        if (apiDelay && apiDelay > MAX_RETRY_DELAY_MS) {
+          outOfQuota = true;
+          break;
+        }
         if (apiDelay) delay = apiDelay;
       }
     }
@@ -202,7 +206,9 @@ export async function discoverFromBoards(params: {
       ranked.length === 0
         ? `Scanned ${jobs.length.toLocaleString()} open roles at ${companies.length - failed.length} companies. None matched your titles, level and location.`
         : `Scanned ${jobs.length.toLocaleString()} open roles. ${ranked.length} matched your filters; scored and saved the top ${saved}.` +
-          (remaining > 0 ? ` Scan again to score ${remaining} more.` : "");
+          (outOfQuota
+            ? " Scoring stopped early: the AI service is out of quota. Try again later."
+            : remaining > 0 ? ` Scan again to score ${remaining} more.` : "");
 
     await log(client, userId, runId, "success", message);
     await shutdownPostHog();

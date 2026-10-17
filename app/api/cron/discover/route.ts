@@ -3,7 +3,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { getAdminClient } from "@/lib/server/admin-client";
 import { discoverFromBoards } from "@/agent/boards";
 
-export const maxDuration = 800;
+// The Hobby plan rejects any deploy with a function over 300s.
+export const maxDuration = 300;
 
 function authorized(req: NextRequest): boolean {
   const secret = process.env.CRON_SECRET;

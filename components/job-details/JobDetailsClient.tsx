@@ -94,10 +94,18 @@ function formatDate(dateStr: string): string {
 export function JobDetailsClient({ job, application }: JobDetailsClientProps) {
   const router = useRouter();
   const [localStatus, setLocalStatus] = useState<JobStatus>(normalizeStatus(job.status));
+  const [statusError, setStatusError] = useState<string | null>(null);
 
+  // Optimistic, but a failed save puts the old status back and says so.
   const handleStatusChange = async (newStatus: JobStatus) => {
+    const previous = localStatus;
     setLocalStatus(newStatus);
-    await updateJobStatus(job.id, newStatus);
+    setStatusError(null);
+    const result = await updateJobStatus(job.id, newStatus).catch(() => ({ success: false, error: undefined }));
+    if (!result.success) {
+      setLocalStatus(previous);
+      setStatusError(result.error ?? "Couldn't update the status. Please try again.");
+    }
   };
 
   const applyUrl = job.external_apply_url || job.source_url;
@@ -286,6 +294,7 @@ export function JobDetailsClient({ job, application }: JobDetailsClientProps) {
                 );
               })}
             </div>
+            {statusError && <p className="mt-2 text-sm text-error-foreground">{statusError}</p>}
           </div>
 
           {/* Four Summary Boxes */}

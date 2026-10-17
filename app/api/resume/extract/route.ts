@@ -119,7 +119,8 @@ export async function POST() {
     }
 
     // Ensure arrays default to empty
-    const data: ProfileFormData = {
+    // Discovery filters are left out so a re-parse never resets them.
+    const data: Partial<ProfileFormData> = {
       fullName: extracted.fullName ?? "",
       email: "", // from OAuth, never from resume
       phone: extracted.phone ?? "",

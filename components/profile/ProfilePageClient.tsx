@@ -37,6 +37,11 @@ export function ProfilePageClient({ profile: initialProfile, authEmail }: Props)
       preferredLocations: [],
       coverLetterTone: "",
       resumePdfUrl: null,
+      salaryMin: "",
+      seniority: [],
+      excludedCompanies: [],
+      excludedKeywords: [],
+      autoDiscover: false,
     };
   });
 

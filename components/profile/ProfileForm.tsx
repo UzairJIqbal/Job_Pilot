@@ -3,10 +3,11 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import type { ProfileFormData, WorkExperience } from "@/lib/mock-profile";
 import { saveProfile } from "@/actions/profile";
+import { SENIORITY_LEVELS } from "@/lib/discovery-filters";
 
 /* ────────────── helpers ────────────── */
 
-function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
+export function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?: string }) {
   return (
     <label htmlFor={htmlFor} className="mb-1.5 block text-sm font-medium text-text-primary">
       {children}
@@ -14,7 +15,7 @@ function FieldLabel({ children, htmlFor }: { children: React.ReactNode; htmlFor?
   );
 }
 
-function TextInput({
+export function TextInput({
   id,
   value,
   onChange,
@@ -42,7 +43,7 @@ function TextInput({
   );
 }
 
-function SelectInput({
+export function SelectInput({
   id,
   value,
   onChange,
@@ -76,7 +77,7 @@ function SelectInput({
   );
 }
 
-function TextareaInput({
+export function TextareaInput({
   id,
   value,
   onChange,
@@ -101,7 +102,7 @@ function TextareaInput({
   );
 }
 
-function TagInput({
+export function TagInput({
   tags,
   onChange,
   placeholder,
@@ -172,7 +173,7 @@ function TagInput({
   );
 }
 
-function SectionHeader({ title, icon }: { title: string; icon: React.ReactNode }) {
+export function SectionHeader({ title, icon }: { title: string; icon: React.ReactNode }) {
   return (
     <div className="mb-5 flex items-center gap-2.5">
       <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-surface-tertiary">
@@ -244,7 +245,7 @@ export function ProfileForm({ profile, onChange }: Props) {
   }, []);
 
   const update = useCallback(
-    (field: keyof ProfileFormData, value: string | string[]) => {
+    (field: keyof ProfileFormData, value: string | string[] | boolean) => {
       onChange({ ...profile, [field]: value });
     },
     [profile, onChange]
@@ -548,6 +549,81 @@ export function ProfileForm({ profile, onChange }: Props) {
               <SelectInput id="coverTone" value={profile.coverLetterTone} onChange={(v) => update("coverLetterTone", v)} options={coverLetterToneOptions} placeholder="Select tone" />
             </div>
           </div>
+        </div>
+      </section>
+
+      {/* ── Discovery Filters ── */}
+      <section className="rounded-xl border border-border bg-surface px-6 py-5">
+        <SectionHeader
+          title="Discovery Filters"
+          icon={
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--color-text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+            </svg>
+          }
+        />
+        <p className="mb-4 text-sm text-text-secondary">
+          Company board scans skip anything these rule out, so the AI only scores roles worth your time.
+        </p>
+        <div className="space-y-4">
+          <div>
+            <FieldLabel>Seniority</FieldLabel>
+            <div className="flex flex-wrap gap-2">
+              {SENIORITY_LEVELS.map((level) => {
+                const selected = profile.seniority.includes(level.value);
+                return (
+                  <button
+                    key={level.value}
+                    type="button"
+                    aria-pressed={selected}
+                    onClick={() =>
+                      update(
+                        "seniority",
+                        selected
+                          ? profile.seniority.filter((v) => v !== level.value)
+                          : [...profile.seniority, level.value],
+                      )
+                    }
+                    className={`rounded-full border px-3 py-1 text-sm transition-colors ${
+                      selected
+                        ? "border-accent bg-accent-light text-accent"
+                        : "border-border text-text-secondary hover:bg-surface-secondary"
+                    }`}
+                  >
+                    {level.label}
+                  </button>
+                );
+              })}
+            </div>
+            <p className="mt-1.5 text-xs text-text-muted">Leave all unselected to accept any level.</p>
+          </div>
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <FieldLabel htmlFor="salaryMin">Minimum Salary (USD / year)</FieldLabel>
+              <TextInput id="salaryMin" value={profile.salaryMin} onChange={(v) => update("salaryMin", v)} placeholder="e.g. 150k" />
+              <p className="mt-1.5 text-xs text-text-muted">Only drops jobs whose posted range tops out below this.</p>
+            </div>
+          </div>
+          <div>
+            <FieldLabel>Companies to Skip</FieldLabel>
+            <TagInput tags={profile.excludedCompanies} onChange={(v) => update("excludedCompanies", v)} placeholder="Add a company and press Enter" />
+          </div>
+          <div>
+            <FieldLabel>Keywords to Skip</FieldLabel>
+            <TagInput tags={profile.excludedKeywords} onChange={(v) => update("excludedKeywords", v)} placeholder="e.g. clearance, crypto" />
+          </div>
+          <label className="flex cursor-pointer items-start gap-3">
+            <input
+              type="checkbox"
+              checked={profile.autoDiscover}
+              onChange={(e) => update("autoDiscover", e.target.checked)}
+              className="mt-0.5 h-4 w-4 rounded border-border accent-[var(--color-accent)]"
+            />
+            <span>
+              <span className="block text-sm font-medium text-text-primary">Scan boards for me every day</span>
+              <span className="block text-xs text-text-muted">New matches appear in Find jobs each morning.</span>
+            </span>
+          </label>
         </div>
       </section>
 

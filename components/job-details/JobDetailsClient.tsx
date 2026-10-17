@@ -6,8 +6,10 @@ import { MATCH_THRESHOLD, timeAgo, parseMarkdown } from "@/lib/utils";
 import { CompanyResearchCard } from "@/components/job-details/CompanyResearchCard";
 import { InterviewPrepCard } from "@/components/job-details/InterviewPrepCard";
 import { EmailTemplatesCard } from "@/components/job-details/EmailTemplatesCard";
+import { TailorCard } from "@/components/job-details/TailorCard";
+import type { ApplicationRow } from "@/lib/applications";
 import { updateJobStatus } from "@/actions/jobs";
-import { normalizeStatus, STATUS_LABELS, STATUS_COLORS } from "@/lib/job-status";
+import { JOB_STATUSES, normalizeStatus, STATUS_LABELS, STATUS_COLORS } from "@/lib/job-status";
 import type { JobStatus } from "@/lib/job-status";
 import type { CompanyDossier, InterviewPrepMaterial, EmailTemplates } from "@/types/agent";
 
@@ -26,7 +28,7 @@ type Job = {
   nice_to_have: string[];
   benefits: string[];
   about_company: string | null;
-  match_score: number;
+  match_score: number | null;
   match_reason: string | null;
   matched_skills: string[];
   missing_skills: string[];
@@ -39,6 +41,7 @@ type Job = {
 
 type JobDetailsClientProps = {
   job: Job;
+  application: ApplicationRow | null;
 };
 
 function getCompanyColor(company: string): string {
@@ -88,7 +91,7 @@ function formatDate(dateStr: string): string {
   }
 }
 
-export function JobDetailsClient({ job }: JobDetailsClientProps) {
+export function JobDetailsClient({ job, application }: JobDetailsClientProps) {
   const router = useRouter();
   const [localStatus, setLocalStatus] = useState<JobStatus>(normalizeStatus(job.status));
 
@@ -181,29 +184,31 @@ export function JobDetailsClient({ job }: JobDetailsClientProps) {
             {/* Match Score + Actions */}
             <div className="flex flex-col items-start gap-3 sm:flex-row sm:items-center lg:flex-col lg:items-end">
               {/* Match Score Badge */}
-              <div className="flex items-center gap-3">
-                <div
-                  className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white ${getMatchScoreColor(job.match_score)}`}
-                >
-                  <svg
-                    className="h-4 w-4"
-                    fill="none"
-                    viewBox="0 0 24 24"
-                    stroke="currentColor"
-                    strokeWidth={2}
+              {job.match_score != null && (
+                <div className="flex items-center gap-3">
+                  <div
+                    className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-semibold text-white ${getMatchScoreColor(job.match_score)}`}
                   >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
-                    />
-                  </svg>
-                  {getMatchScoreLabel(job.match_score)}
+                    <svg
+                      className="h-4 w-4"
+                      fill="none"
+                      viewBox="0 0 24 24"
+                      stroke="currentColor"
+                      strokeWidth={2}
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    {getMatchScoreLabel(job.match_score)}
+                  </div>
+                  <span className="text-lg font-bold text-text-slate">
+                    {job.match_score}/100
+                  </span>
                 </div>
-                <span className="text-lg font-bold text-text-slate">
-                  {job.match_score}/100
-                </span>
-              </div>
+              )}
 
               {/* Action Buttons */}
               <div className="flex items-center gap-3">
@@ -263,7 +268,7 @@ export function JobDetailsClient({ job }: JobDetailsClientProps) {
               Application Status
             </h3>
             <div className="flex flex-wrap gap-2">
-              {(["saved", "applied", "interviewing", "rejected"] as const).map((status) => {
+              {JOB_STATUSES.map((status) => {
                 const isActive = localStatus === status;
                 const colors = STATUS_COLORS[status];
                 return (
@@ -315,7 +320,7 @@ export function JobDetailsClient({ job }: JobDetailsClientProps) {
               <h3 className="mb-3 text-lg font-semibold text-text-slate">
                 Role Description
               </h3>
-              <p className="text-sm leading-relaxed text-text-secondary">
+              <p className="whitespace-pre-line text-sm leading-relaxed text-text-secondary">
                 {job.about_role}
               </p>
               {job.source_url && (
@@ -345,12 +350,14 @@ export function JobDetailsClient({ job }: JobDetailsClientProps) {
           )}
 
           {/* AI Match Analysis */}
-          <AiMatchAnalysis
-            matchScore={job.match_score}
-            matchReason={job.match_reason}
-            matchedSkills={job.matched_skills}
-            missingSkills={job.missing_skills}
-          />
+          {job.match_score != null && (
+            <AiMatchAnalysis
+              matchScore={job.match_score}
+              matchReason={job.match_reason}
+              matchedSkills={job.matched_skills}
+              missingSkills={job.missing_skills}
+            />
+          )}
 
           {/* Responsibilities */}
           {job.responsibilities && job.responsibilities.length > 0 && (
@@ -507,6 +514,11 @@ export function JobDetailsClient({ job }: JobDetailsClientProps) {
 
         </div>
 
+        {/* Tailored application — resume, cover letter and form answers to approve */}
+        <div id="application" className="scroll-mt-20">
+          <TailorCard jobId={job.id} company={job.company} application={application} />
+        </div>
+
         {/* Company Research — separate card below main job card */}
         <div id="company-research" className="scroll-mt-20">
           <CompanyResearchCard
@@ -538,7 +550,7 @@ export function JobDetailsClient({ job }: JobDetailsClientProps) {
         </div>
 
         <p className="text-center text-xs text-text-muted">
-          Jobs by Adzuna
+          Jobs from Adzuna and company career pages
         </p>
     </div>
   );

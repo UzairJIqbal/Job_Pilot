@@ -2,6 +2,8 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { ProfilePageClient } from "@/components/profile/ProfilePageClient";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { getProfile } from "@/actions/profile";
+import { getApplicationProfile } from "@/actions/application-profile";
+import { ApplicationProfileForm } from "@/components/profile/ApplicationProfileForm";
 
 export default async function ProfilePage() {
   let userId: string | undefined;
@@ -16,7 +18,10 @@ export default async function ProfilePage() {
     // Not authenticated — proxy.ts redirects before we get here
   }
 
-  const { data: profile, error: profileError } = await getProfile(userId);
+  const [{ data: profile, error: profileError }, { data: applicationProfile }] = await Promise.all([
+    getProfile(userId),
+    getApplicationProfile(userId),
+  ]);
 
   return (
     <div className="space-y-6">
@@ -30,6 +35,7 @@ export default async function ProfilePage() {
         </div>
       )}
       <ProfilePageClient profile={profile} authEmail={email} />
+      <ApplicationProfileForm initial={applicationProfile} />
     </div>
   );
 }

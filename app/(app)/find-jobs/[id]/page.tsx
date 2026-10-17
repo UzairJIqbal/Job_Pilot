@@ -1,6 +1,7 @@
 import { notFound } from "next/navigation";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { JobDetailsClient } from "@/components/job-details/JobDetailsClient";
+import type { ApplicationRow } from "@/lib/applications";
 
 type PageProps = {
   params: Promise<{ id: string }>;
@@ -26,5 +27,12 @@ export default async function JobDetailsPage({ params }: PageProps) {
     notFound();
   }
 
-  return <JobDetailsClient job={job} />;
+  const { data: application } = await insforge.database
+    .from("applications")
+    .select("*")
+    .eq("job_id", id)
+    .eq("user_id", userId)
+    .maybeSingle();
+
+  return <JobDetailsClient job={job} application={(application as ApplicationRow | null) ?? null} />;
 }

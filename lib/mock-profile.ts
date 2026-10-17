@@ -36,6 +36,12 @@ export interface ProfileFormData {
   preferredLocations: string[];
   coverLetterTone: string;
   resumePdfUrl: string | null;
+  /** Discovery filters. Not part of profile completeness. */
+  salaryMin: string;
+  seniority: string[];
+  excludedCompanies: string[];
+  excludedKeywords: string[];
+  autoDiscover: boolean;
 }
 
 export type ProfileRow = {
@@ -60,6 +66,11 @@ export type ProfileRow = {
   portfolio_url: string;
   work_authorization: string;
   resume_pdf_url: string | null;
+  salary_min: number | null;
+  seniority: string[] | null;
+  excluded_companies: string[] | null;
+  excluded_keywords: string[] | null;
+  auto_discover: boolean | null;
   is_complete: boolean;
   created_at: string;
   updated_at: string;
@@ -92,6 +103,11 @@ export function rowToFormData(row: ProfileRow): ProfileFormData {
     preferredLocations: row.preferred_locations ?? [],
     coverLetterTone: row.cover_letter_tone,
     resumePdfUrl: row.resume_pdf_url ?? null,
+    salaryMin: row.salary_min?.toString() ?? "",
+    seniority: row.seniority ?? [],
+    excludedCompanies: row.excluded_companies ?? [],
+    excludedKeywords: row.excluded_keywords ?? [],
+    autoDiscover: row.auto_discover ?? false,
   };
 }
 
@@ -119,6 +135,14 @@ export function calculateIsComplete(data: ProfileFormData): boolean {
     data.preferredLocations.length > 0 &&
     data.coverLetterTone
   );
+}
+
+/** "150k", "$150,000" and "150000" all mean 150000. Blank means no floor. */
+export function parseSalaryMin(value: string): number | null {
+  const match = value.replace(/[,$\s]/g, "").match(/^(\d+(?:\.\d+)?)(k)?$/i);
+  if (!match) return null;
+  const amount = Math.round(parseFloat(match[1]) * (match[2] ? 1000 : 1));
+  return amount > 0 ? amount : null;
 }
 
 export function formDataToRow(
@@ -149,6 +173,11 @@ export function formDataToRow(
     portfolio_url: data.portfolioUrl,
     work_authorization: data.workAuthorization,
     resume_pdf_url: data.resumePdfUrl,
+    salary_min: parseSalaryMin(data.salaryMin),
+    seniority: data.seniority,
+    excluded_companies: data.excludedCompanies,
+    excluded_keywords: data.excludedKeywords,
+    auto_discover: data.autoDiscover,
     is_complete: calculateIsComplete(data),
     updated_at: new Date().toISOString(),
   };
@@ -201,6 +230,11 @@ export const mockProfile: ProfileFormData = {
   preferredLocations: ["Bangalore", "Remote (Global)", "San Francisco"],
   coverLetterTone: "professional",
   resumePdfUrl: null,
+  salaryMin: "",
+  seniority: [],
+  excludedCompanies: [],
+  excludedKeywords: [],
+  autoDiscover: false,
 };
 
 export const allMissingFields: string[] = [

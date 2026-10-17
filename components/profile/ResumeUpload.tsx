@@ -2,6 +2,7 @@
 
 import { useCallback, useState, useRef } from "react";
 import { uploadResume } from "@/actions/profile";
+import { MAX_RESUME_BYTES, MAX_RESUME_LABEL } from "@/lib/resume-file";
 
 import type { ProfileFormData } from "@/lib/mock-profile";
 
@@ -30,19 +31,24 @@ export function ResumeUpload({ resumeUrl, onUploadComplete, onExtractComplete, o
         setError("Only PDF files are accepted.");
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        setError("File must be under 10MB.");
+      if (file.size > MAX_RESUME_BYTES) {
+        setError(`File must be under ${MAX_RESUME_LABEL}.`);
         return;
       }
 
       setIsUploading(true);
-      const result = await uploadResume(file);
-      setIsUploading(false);
-
-      if (result.error) {
-        setError(result.error);
-      } else if (result.url) {
-        onUploadComplete(result.url);
+      try {
+        const result = await uploadResume(file);
+        if (result.error) {
+          setError(result.error);
+        } else if (result.url) {
+          onUploadComplete(result.url);
+        }
+      } catch {
+        // A rejected request body never reaches the action, so it can't return an error.
+        setError("Upload failed. Please try again.");
+      } finally {
+        setIsUploading(false);
       }
     },
     [onUploadComplete],
@@ -211,7 +217,7 @@ export function ResumeUpload({ resumeUrl, onUploadComplete, onExtractComplete, o
             or click to browse files
           </p>
           <p className="mt-2 text-xs text-text-muted">
-            PDF only, up to 10MB
+            PDF only, up to {MAX_RESUME_LABEL}
           </p>
         </div>
       )}

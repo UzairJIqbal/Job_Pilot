@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import type { ProfileFormData, ProfileRow } from "@/lib/mock-profile";
 import { formDataToRow, rowToFormData } from "@/lib/mock-profile";
+import { MAX_RESUME_BYTES, MAX_RESUME_LABEL } from "@/lib/resume-file";
 
 export async function getProfile(userId?: string): Promise<{
   data: ProfileFormData | null;
@@ -86,8 +87,6 @@ export async function saveProfile(profileData: ProfileFormData): Promise<{
   }
 }
 
-const MAX_RESUME_SIZE = 10 * 1024 * 1024;
-
 export async function uploadResume(file: File): Promise<{
   url: string | null;
   error?: string;
@@ -96,8 +95,8 @@ export async function uploadResume(file: File): Promise<{
     if (file.type !== "application/pdf") {
       return { url: null, error: "Only PDF files are accepted." };
     }
-    if (file.size > MAX_RESUME_SIZE) {
-      return { url: null, error: "File must be under 10MB." };
+    if (file.size > MAX_RESUME_BYTES) {
+      return { url: null, error: `File must be under ${MAX_RESUME_LABEL}.` };
     }
 
     const insforge = await createInsforgeServer();
@@ -108,11 +107,8 @@ export async function uploadResume(file: File): Promise<{
     const storagePath = `${userId}/resume.pdf`;
     const bucket = insforge.storage.from("resumes");
 
-    const { error: deleteErr } = await bucket.remove(storagePath);
-    if (deleteErr) {
-      console.error("[actions/profile] uploadResume delete:", deleteErr);
-    }
-
+    // Upload overwrites the same key. Don't delete first: an upload that fails
+    // or is abandoned would leave the user with no resume at all.
     const buffer = await file.arrayBuffer();
     const { data, error: uploadErr } = await bucket.upload(storagePath, new Blob([buffer], { type: "application/pdf" }));
 

@@ -8,10 +8,11 @@ type Job = {
   id: string;
   company: string;
   title: string;
-  match_score: number;
+  match_score: number | null;
   status: string | null;
   salary: string | null;
   source: string;
+  fit_reason?: string | null;
   found_at: string;
 };
 
@@ -24,6 +25,12 @@ function getMatchScoreColor(score: number): string {
   if (score >= MATCH_THRESHOLD - 10) return "bg-info";
   return "bg-warning";
 }
+
+const SOURCE_LABELS: Record<string, string> = {
+  search: "Adzuna",
+  board: "Company board",
+  url: "Link",
+};
 
 function getCompanyColor(company: string): string {
   const colors = [
@@ -115,21 +122,28 @@ export function JobsTable({ jobs }: JobsTableProps) {
               {/* Role */}
               <td className="px-4 py-4">
                 <span className="text-sm text-text-primary">{job.title}</span>
+                {job.fit_reason && (
+                  <p className="mt-0.5 line-clamp-1 max-w-sm text-xs text-text-muted">{job.fit_reason}</p>
+                )}
               </td>
 
               {/* Match Score */}
               <td className="px-4 py-4">
-                <div className="flex items-center gap-3">
-                  <div className="h-1 w-20 overflow-hidden rounded-full bg-border-light">
-                    <div
-                      className={`h-full rounded-full ${getMatchScoreColor(job.match_score)}`}
-                      style={{ width: `${job.match_score}%` }}
-                    />
+                {job.match_score == null ? (
+                  <span className="text-sm text-text-muted">Not scored</span>
+                ) : (
+                  <div className="flex items-center gap-3">
+                    <div className="h-1 w-20 overflow-hidden rounded-full bg-border-light">
+                      <div
+                        className={`h-full rounded-full ${getMatchScoreColor(job.match_score)}`}
+                        style={{ width: `${job.match_score}%` }}
+                      />
+                    </div>
+                    <span className="text-sm font-medium text-text-primary">
+                      {job.match_score}%
+                    </span>
                   </div>
-                  <span className="text-sm font-medium text-text-primary">
-                    {job.match_score}%
-                  </span>
-                </div>
+                )}
               </td>
 
               {/* Status */}
@@ -155,7 +169,7 @@ export function JobsTable({ jobs }: JobsTableProps) {
               {/* Source */}
               <td className="px-4 py-4">
                 <span className="inline-flex items-center rounded-full bg-success-lightest px-2.5 py-0.5 text-xs font-medium text-success-foreground">
-                  {job.source === "url" ? "URL" : "Search"}
+                  {SOURCE_LABELS[job.source] ?? job.source}
                 </span>
               </td>
 

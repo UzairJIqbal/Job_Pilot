@@ -4,6 +4,7 @@ import { PageHeader } from "@/components/layout/PageHeader";
 import { useState, useEffect, useRef, useCallback } from "react";
 import { MATCH_THRESHOLD } from "@/lib/utils";
 import { SearchControls } from "./SearchControls";
+import { BoardControls } from "./BoardControls";
 import { JobFilters } from "./JobFilters";
 import { JobsTable } from "./JobsTable";
 import { JobsPagination } from "./JobsPagination";
@@ -14,12 +15,15 @@ type Job = {
   id: string;
   company: string;
   title: string;
-  match_score: number;
+  match_score: number | null;
   status: string | null;
   salary: string | null;
   source: string;
+  fit_reason: string | null;
   found_at: string;
 };
+
+type AgentOutcome = { message: string; type: "success" | "warning" };
 
 const JOBS_PER_PAGE = 6;
 
@@ -28,6 +32,19 @@ const FIND_JOBS_STEPS: ProgressStep[] = [
   { label: "Analyzing job descriptions…", durationMs: 5_000 },
   { label: "Scoring matches with AI…", durationMs: 15_000 },
   { label: "Saving results…", durationMs: 2_000 },
+];
+
+const SCAN_BOARDS_STEPS: ProgressStep[] = [
+  { label: "Reading company job boards…", durationMs: 45_000 },
+  { label: "Filtering by your titles, level and location…", durationMs: 5_000 },
+  { label: "Scoring the best matches with AI…", durationMs: 60_000 },
+  { label: "Saving results…", durationMs: 2_000 },
+];
+
+const IMPORT_URL_STEPS: ProgressStep[] = [
+  { label: "Loading the posting…", durationMs: 2_000 },
+  { label: "Scoring it against your profile…", durationMs: 8_000 },
+  { label: "Saving…", durationMs: 1_000 },
 ];
 
 export function FindJobsClient() {
@@ -39,6 +56,8 @@ export function FindJobsClient() {
   const [activeStep, setActiveStep] = useState(0);
   const [progressComplete, setProgressComplete] = useState(false);
   const [progressError, setProgressError] = useState<string | null>(null);
+  const [progressTitle, setProgressTitle] = useState("Finding jobs…");
+  const [progressSteps, setProgressSteps] = useState<ProgressStep[]>(FIND_JOBS_STEPS);
   const [filter, setFilter] = useState("all");
   const [sort, setSort] = useState("score");
   const [status, setStatus] = useState("all");
@@ -122,8 +141,15 @@ export function FindJobsClient() {
     setCurrentPage(1);
   };
 
-  const handleSearch = async (jobTitle: string, location: string) => {
-    // Reset modal state
+  /** Run one agent request behind the progress modal, then reload the list. */
+  const runAgentTask = async (
+    title: string,
+    steps: ProgressStep[],
+    request: () => Promise<Response>,
+    onSuccess: (data: Record<string, unknown>) => AgentOutcome,
+  ) => {
+    setProgressTitle(title);
+    setProgressSteps(steps);
     setProgressActive(true);
     setActiveStep(0);
     setProgressComplete(false);
@@ -131,51 +157,33 @@ export function FindJobsClient() {
     setSearchMessage(null);
     setIsLoading(true);
 
-    // Schedule step timers
     let accumulated = 0;
     const timers: ReturnType<typeof setTimeout>[] = [];
-    FIND_JOBS_STEPS.forEach((step, index) => {
+    steps.forEach((_, index) => {
       if (index === 0) return;
-      accumulated += FIND_JOBS_STEPS[index - 1].durationMs;
-      const timer = setTimeout(() => {
-        setActiveStep(index);
-      }, accumulated);
-      timers.push(timer);
+      accumulated += steps[index - 1].durationMs;
+      timers.push(setTimeout(() => setActiveStep(index), accumulated));
     });
     stepTimersRef.current = timers;
 
     try {
-      const res = await fetch("/api/agent/find", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ jobTitle, location }),
-      });
+      const res = await request();
       const data = await res.json();
 
       if (!data.success) {
-        setProgressError(data.error || "Search failed. Please try again.");
-        setIsLoading(false);
+        setProgressError(data.error || "Something went wrong. Please try again.");
         return;
       }
 
-      // Success — trigger completion animation
       setProgressComplete(true);
-
       await new Promise((resolve) => setTimeout(resolve, 600));
-
       setProgressActive(false);
       setProgressComplete(false);
       setActiveStep(0);
 
-      setSearchMessage(data.data.message);
-
-      const newTotal = data.data.jobsFound ?? 0;
-      const savedCount = data.data.jobs?.length ?? 0;
-      if (newTotal > 0 && savedCount === 0) {
-        setMessageType("warning");
-      } else {
-        setMessageType("success");
-      }
+      const outcome = onSuccess(data.data);
+      setSearchMessage(outcome.message);
+      setMessageType(outcome.type);
 
       setFilter("all");
       setSort("score");
@@ -188,13 +196,61 @@ export function FindJobsClient() {
       searchRef.current = "";
       await fetchJobs("all", "score", "all");
     } catch {
-      setProgressError("Search failed. Please try again.");
+      setProgressError("Something went wrong. Please try again.");
     } finally {
       timers.forEach(clearTimeout);
       stepTimersRef.current = [];
       setIsLoading(false);
     }
   };
+
+  const handleSearch = (jobTitle: string, location: string) =>
+    runAgentTask(
+      "Finding jobs…",
+      FIND_JOBS_STEPS,
+      () =>
+        fetch("/api/agent/find", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ jobTitle, location }),
+        }),
+      (data) => {
+        const found = (data.jobsFound as number) ?? 0;
+        const saved = (data.jobs as unknown[] | undefined)?.length ?? 0;
+        return { message: data.message as string, type: found > 0 && saved === 0 ? "warning" : "success" };
+      },
+    );
+
+  const handleScanBoards = () =>
+    runAgentTask(
+      "Scanning company boards…",
+      SCAN_BOARDS_STEPS,
+      () => fetch("/api/agent/boards", { method: "POST" }),
+      (data) => ({
+        message: data.message as string,
+        type: (data.saved as number) > 0 ? "success" : "warning",
+      }),
+    );
+
+  const handleImportUrl = (url: string) =>
+    runAgentTask(
+      "Importing job…",
+      IMPORT_URL_STEPS,
+      () =>
+        fetch("/api/agent/import-url", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ url }),
+        }),
+      (data) => {
+        if (data.duplicate) return { message: "That job is already in your list.", type: "warning" };
+        const score = data.matchScore == null ? "" : ` (${data.matchScore}% match)`;
+        const saved = `Saved ${data.title} at ${data.company}${score}.`;
+        return data.warning
+          ? { message: `${saved} Heads up: ${data.warning}.`, type: "warning" }
+          : { message: saved, type: "success" };
+      },
+    );
 
   const filteredJobs = jobs.filter((job) => {
     if (!searchQuery.trim()) return true;
@@ -216,13 +272,19 @@ export function FindJobsClient() {
       <div className="space-y-6">
         <PageHeader
           title="Find jobs"
-          description="Search live listings — every result is scored against your profile."
+          description="Search live listings or scan company career boards. Every result is scored against your profile."
         />
 
         <SearchControls
           onSearch={handleSearch}
           searchMessage={searchMessage}
           messageType={messageType}
+          isLoading={isLoading}
+        />
+
+        <BoardControls
+          onScan={handleScanBoards}
+          onImportUrl={handleImportUrl}
           isLoading={isLoading}
         />
 
@@ -265,14 +327,14 @@ export function FindJobsClient() {
         </div>
 
         <p className="text-center text-xs text-text-muted">
-          Jobs by Adzuna
+          Jobs from Adzuna and public Greenhouse, Lever and Ashby job boards
         </p>
       </div>
 
       <ProgressModal
         isOpen={progressActive}
-        title="Finding jobs…"
-        steps={FIND_JOBS_STEPS}
+        title={progressTitle}
+        steps={progressSteps}
         activeStep={activeStep}
         isComplete={progressComplete}
         error={progressError}

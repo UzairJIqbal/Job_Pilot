@@ -35,7 +35,7 @@ export async function GET(req: NextRequest) {
     }
 
     if (sort === "score") {
-      query = query.order("match_score", { ascending: false });
+      query = query.order("match_score", { ascending: false, nullsFirst: false });
     } else if (sort === "newest") {
       query = query.order("found_at", { ascending: false });
     } else {

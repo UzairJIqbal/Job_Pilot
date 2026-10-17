@@ -79,7 +79,12 @@ export async function POST() {
 
     // Extract text from PDF
     const buffer = Buffer.from(await blob.arrayBuffer());
-    const text = await parseBuffer(buffer);
+    // The parser throws on some valid PDFs (e.g. ASCII85 streams); treat that
+    // like a PDF with no readable text rather than a server error.
+    const text = await parseBuffer(buffer).catch((error) => {
+      console.error("[api/resume/extract] parse:", error);
+      return "";
+    });
 
     if (!text || text.trim().length < 50) {
       return NextResponse.json(
@@ -151,6 +156,14 @@ export async function POST() {
     return NextResponse.json({ data });
   } catch (error) {
     console.error("[api/resume/extract] exception:", error);
+    const status =
+      error && typeof error === "object" && "status" in error ? (error as { status: number }).status : null;
+    if (status === 429 || status === 503) {
+      return NextResponse.json(
+        { error: "The AI service is busy or out of quota. Try again in a minute." },
+        { status: 503 },
+      );
+    }
     return NextResponse.json(
       { error: "Internal server error" },
       { status: 500 },

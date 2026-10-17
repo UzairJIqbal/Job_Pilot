@@ -304,7 +304,7 @@ export function ResumeUpload({ resumeUrl, onUploadComplete, onExtractComplete, o
         </button>
         <button
           type="button"
-          disabled={!resumeUrl || isExtracting}
+          disabled={!resumeUrl || isExtracting || isUploading}
           onClick={handleExtract}
           className="inline-flex items-center gap-2 rounded-lg border border-border bg-surface px-4 py-2 text-sm font-medium text-text-primary transition-colors hover:bg-surface-secondary disabled:cursor-not-allowed disabled:opacity-60"
         >

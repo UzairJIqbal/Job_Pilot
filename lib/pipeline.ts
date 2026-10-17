@@ -18,7 +18,7 @@ export type PipelineJob = {
 
 export type NextAction = {
   id: string;
-  kind: "prep" | "apply" | "follow-up";
+  kind: "review" | "prep" | "apply" | "follow-up";
   title: string;
   detail: string;
   href: string;
@@ -72,15 +72,46 @@ export async function getPipelineJobs(userId: string): Promise<PipelineJob[]> {
   }
 }
 
+/** Drafted applications waiting for the user's approval. */
+export async function countNeedsReview(userId: string): Promise<number> {
+  try {
+    const insforge = await createInsforgeServer();
+    const { count, error } = await insforge.database
+      .from("applications")
+      .select("id", { count: "exact", head: true })
+      .eq("user_id", userId)
+      .eq("state", "needs_review");
+    if (error) {
+      console.error("[pipeline] Queue count error:", error);
+      return 0;
+    }
+    return count ?? 0;
+  } catch {
+    console.error("[pipeline] Queue count failed");
+    return 0;
+  }
+}
+
 const FOLLOW_UP_AFTER_DAYS = 7;
 
 /**
  * Derive the "needs you" queue: the few things worth doing next, most
- * time-sensitive first. Interviews beat fresh applications, which beat
- * follow-ups on roles that have gone quiet.
+ * time-sensitive first. Drafts waiting for approval come first, then
+ * interviews, fresh applications, and follow-ups on roles that have gone quiet.
  */
-export function getNextActions(jobs: PipelineJob[], limit = 5): NextAction[] {
+export function getNextActions(jobs: PipelineJob[], limit = 5, needsReview = 0): NextAction[] {
   const actions: NextAction[] = [];
+
+  if (needsReview > 0) {
+    actions.push({
+      id: "review-queue",
+      kind: "review",
+      title: `${needsReview} drafted application${needsReview === 1 ? "" : "s"} to review`,
+      detail: "Approve them to send, or skip",
+      href: "/queue",
+      cta: "Review",
+    });
+  }
   const staleBefore = Date.now() - FOLLOW_UP_AFTER_DAYS * 24 * 60 * 60 * 1000;
 
   for (const job of jobs) {
@@ -126,7 +157,7 @@ export function getNextActions(jobs: PipelineJob[], limit = 5): NextAction[] {
 }
 
 export function countByStatus(jobs: PipelineJob[]): Record<JobStatus, number> {
-  const counts: Record<JobStatus, number> = { saved: 0, applied: 0, interviewing: 0, rejected: 0 };
+  const counts: Record<JobStatus, number> = { saved: 0, applied: 0, replied: 0, interviewing: 0, offer: 0, rejected: 0 };
   for (const job of jobs) counts[job.status]++;
   return counts;
 }

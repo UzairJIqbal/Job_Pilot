@@ -1,17 +1,19 @@
 import Link from "next/link";
-import { ArrowRight, CalendarCheck, Mail, Sparkles, CheckCircle2 } from "lucide-react";
+import { ArrowRight, CalendarCheck, Inbox, Mail, Sparkles, CheckCircle2 } from "lucide-react";
 import type { NextAction, PipelineJob } from "@/lib/pipeline";
 import { PIPELINE_STAGES, type JobStatus } from "@/lib/job-status";
 import { CompanyAvatar, MatchBadge } from "@/components/ui/JobBits";
 import { timeAgo } from "@/lib/utils";
 
 const ACTION_ICONS: Record<NextAction["kind"], React.ElementType> = {
+  review: Inbox,
   prep: CalendarCheck,
   apply: Sparkles,
   "follow-up": Mail,
 };
 
 const ACTION_TONES: Record<NextAction["kind"], string> = {
+  review: "bg-warning-lightest text-warning-foreground",
   prep: "bg-success-lightest text-success-foreground",
   apply: "bg-accent-light text-accent",
   "follow-up": "bg-info-lightest text-info-foreground",
@@ -70,7 +72,7 @@ export function NeedsYou({ actions }: { actions: NextAction[] }) {
 
 export function PipelineStrip({ counts }: { counts: Record<JobStatus, number> }) {
   return (
-    <section aria-label="Pipeline" className="grid grid-cols-2 gap-3 md:grid-cols-4">
+    <section aria-label="Pipeline" className="grid grid-cols-2 gap-3 md:grid-cols-3 xl:grid-cols-6">
       {PIPELINE_STAGES.map((stage) => (
         <Link
           key={stage.status}

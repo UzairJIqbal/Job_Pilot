@@ -2,7 +2,7 @@ import Link from "next/link";
 import { Search } from "lucide-react";
 import { PageHeader } from "@/components/layout/PageHeader";
 import { NeedsYou, PipelineStrip, TopMatches } from "@/components/dashboard/MissionControl";
-import { getPipelineJobs, getNextActions, countByStatus } from "@/lib/pipeline";
+import { getPipelineJobs, getNextActions, countByStatus, countNeedsReview } from "@/lib/pipeline";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import { StatsBar } from "@/components/dashboard/StatsBar";
 import type { DashboardStats } from "@/components/dashboard/StatsBar";
@@ -221,14 +221,19 @@ export default async function DashboardPage() {
 
   const emptyStats: DashboardStats = { totalJobs: 0, avgMatchRate: 0, companiesResearched: 0, jobsThisWeek: 0, appliedCount: 0 };
 
-  const [{ stats, jobs }, pipelineJobs, activities] = userId
-    ? await Promise.all([getDashboardData(userId), getPipelineJobs(userId), getRecentActivity(userId)])
-    : [{ stats: emptyStats, jobs: [] }, [], []];
+  const [{ stats, jobs }, pipelineJobs, activities, needsReview] = userId
+    ? await Promise.all([
+        getDashboardData(userId),
+        getPipelineJobs(userId),
+        getRecentActivity(userId),
+        countNeedsReview(userId),
+      ])
+    : [{ stats: emptyStats, jobs: [] }, [], [], 0];
 
   const chartData = computeChartData(jobs);
   const skillsGap = computeSkillsGap(jobs);
 
-  const nextActions = getNextActions(pipelineJobs);
+  const nextActions = getNextActions(pipelineJobs, 5, needsReview);
   const counts = countByStatus(pipelineJobs);
   const topMatches = pipelineJobs.filter((j) => j.status === "saved").slice(0, 5);
 

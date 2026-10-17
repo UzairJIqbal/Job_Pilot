@@ -1,4 +1,4 @@
-import { Home, Search, KanbanSquare, UserRound, type LucideIcon } from "lucide-react";
+import { Home, Search, Inbox, KanbanSquare, UserRound, type LucideIcon } from "lucide-react";
 
 export type NavItem = {
   href: string;
@@ -10,6 +10,7 @@ export type NavItem = {
 export const APP_NAV: NavItem[] = [
   { href: "/dashboard", label: "Home", description: "What needs you today", icon: Home },
   { href: "/find-jobs", label: "Find jobs", description: "Search and score new roles", icon: Search },
+  { href: "/queue", label: "Queue", description: "Review and approve drafted applications", icon: Inbox },
   { href: "/applications", label: "Applications", description: "Your pipeline, stage by stage", icon: KanbanSquare },
   { href: "/profile", label: "Profile", description: "Resume and preferences", icon: UserRound },
 ];

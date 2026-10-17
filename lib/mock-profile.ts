@@ -46,25 +46,25 @@ export interface ProfileFormData {
 
 export type ProfileRow = {
   id: string;
-  full_name: string;
-  email: string;
-  phone: string;
-  location: string;
-  current_title: string;
-  experience_level: string;
-  years_experience: number;
+  full_name: string | null;
+  email: string | null;
+  phone: string | null;
+  location: string | null;
+  current_title: string | null;
+  experience_level: string | null;
+  years_experience: number | null;
   skills: string[];
   industries: string[];
   work_experience: WorkExperience[];
   education: Education;
   job_titles_seeking: string[];
-  remote_preference: string;
+  remote_preference: string | null;
   preferred_locations: string[];
-  salary_expectation: string;
-  cover_letter_tone: string;
-  linkedin_url: string;
-  portfolio_url: string;
-  work_authorization: string;
+  salary_expectation: string | null;
+  cover_letter_tone: string | null;
+  linkedin_url: string | null;
+  portfolio_url: string | null;
+  work_authorization: string | null;
   resume_pdf_url: string | null;
   salary_min: number | null;
   seniority: string[] | null;
@@ -76,17 +76,19 @@ export type ProfileRow = {
   updated_at: string;
 };
 
+// A row created by a resume upload alone has every text column null; controlled
+// inputs need strings.
 export function rowToFormData(row: ProfileRow): ProfileFormData {
   return {
-    fullName: row.full_name,
-    email: row.email,
-    phone: row.phone,
-    location: row.location,
-    linkedinUrl: row.linkedin_url,
-    portfolioUrl: row.portfolio_url,
-    workAuthorization: row.work_authorization,
-    currentTitle: row.current_title,
-    experienceLevel: row.experience_level,
+    fullName: row.full_name ?? "",
+    email: row.email ?? "",
+    phone: row.phone ?? "",
+    location: row.location ?? "",
+    linkedinUrl: row.linkedin_url ?? "",
+    portfolioUrl: row.portfolio_url ?? "",
+    workAuthorization: row.work_authorization ?? "",
+    currentTitle: row.current_title ?? "",
+    experienceLevel: row.experience_level ?? "",
     yearsExperience: row.years_experience?.toString() ?? "",
     skills: row.skills ?? [],
     industries: row.industries ?? [],
@@ -98,10 +100,10 @@ export function rowToFormData(row: ProfileRow): ProfileFormData {
       graduationYear: "",
     },
     jobTitlesSeeking: row.job_titles_seeking ?? [],
-    remotePreference: row.remote_preference,
-    salaryExpectation: row.salary_expectation,
+    remotePreference: row.remote_preference ?? "",
+    salaryExpectation: row.salary_expectation ?? "",
     preferredLocations: row.preferred_locations ?? [],
-    coverLetterTone: row.cover_letter_tone,
+    coverLetterTone: row.cover_letter_tone ?? "",
     resumePdfUrl: row.resume_pdf_url ?? null,
     salaryMin: row.salary_min?.toString() ?? "",
     seniority: row.seniority ?? [],

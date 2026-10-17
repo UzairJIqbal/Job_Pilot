@@ -51,7 +51,8 @@ export function JobFilters({
       </div>
 
       {/* Filter Dropdown */}
-      <div className="flex gap-3">
+      {/* Wraps on phones: three selects are wider than a 390px screen. */}
+      <div className="flex flex-wrap gap-3">
         <div className="relative">
           <select
             value={filter}

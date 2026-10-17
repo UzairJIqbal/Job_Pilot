@@ -1,0 +1,6 @@
+**
+!worker/package.json
+!worker/package-lock.json
+!worker/src/**
+!lib/ats/**
+!lib/applications.ts

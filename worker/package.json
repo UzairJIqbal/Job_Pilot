@@ -1,0 +1,15 @@
+{
+  "name": "jobpilot-worker",
+  "private": true,
+  "type": "module",
+  "description": "Fills and submits approved JobPilot applications in a headless browser.",
+  "scripts": {
+    "start": "tsx src/main.ts"
+  },
+  "dependencies": {
+    "@browserbasehq/stagehand": "^3.6.0",
+    "@insforge/sdk": "^1.4.3",
+    "playwright": "1.61.1",
+    "tsx": "^4.20.0"
+  }
+}

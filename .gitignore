@@ -54,3 +54,18 @@ memory.md
 
 # MCP config (values come from env vars; see .mcp.example.json)
 .mcp.json
+
+# InsForge & AI agent skills
+.insforge
+.agent
+.agents
+.augment
+.claude
+.cline
+.github/copilot*
+.kilocode
+.qoder
+.qwen
+.roo
+.trae
+.windsurf

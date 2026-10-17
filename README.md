@@ -70,88 +70,32 @@ npm install
 
 ### Environment Variables
 
-Create a `.env.local` file:
+Copy `.env.example` to `.env` and fill in the values:
 
-```env
-# InsForge
-NEXT_PUBLIC_INSFORGE_URL=https://your-app.insforge.app
-NEXT_PUBLIC_INSFORGE_ANON_KEY=your-anon-key
-
-# Gemini
-GEMINI_API_KEY=your-gemini-key
-
-# Adzuna
-ADZUNA_APP_KEY=your-app-id
-ADZUNA_API_KEY=your-app-key
-
-# PostHog (optional)
-NEXT_PUBLIC_POSTHOG_KEY=your-posthog-key
-NEXT_PUBLIC_POSTHOG_HOST=https://app.posthog.com
+```bash
+cp .env.example .env
 ```
+
+`NEXT_PUBLIC_INSFORGE_URL` and `NEXT_PUBLIC_INSFORGE_ANON_KEY` come from your InsForge project. `INSFORGE_API_KEY` is an admin key — keep it server-only and never commit `.env`.
 
 ### Database Setup
 
-Run these SQL statements against your InsForge database:
+The schema lives in [`migrations/`](migrations/) and is applied with the InsForge CLI:
 
-```sql
--- Jobs table
-CREATE TABLE jobs (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  run_id uuid REFERENCES agent_runs(id),
-  user_id uuid REFERENCES profiles(id),
-  source text CHECK (source IN ('search', 'url')),
-  source_url text,
-  external_apply_url text,
-  title text NOT NULL,
-  company text,
-  location text,
-  salary text,
-  job_type text,
-  about_role text,
-  responsibilities text[],
-  requirements text[],
-  nice_to_have text[],
-  benefits text[],
-  about_company text,
-  match_score integer,
-  match_reason text,
-  matched_skills text[],
-  missing_skills text[],
-  company_research jsonb,
-  interview_prep jsonb,
-  email_templates jsonb,
-  status text DEFAULT 'saved' CHECK (status IN ('saved', 'applied', 'interviewing', 'rejected')),
-  found_at timestamptz DEFAULT now()
-);
-
--- Agent runs
-CREATE TABLE agent_runs (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  user_id uuid REFERENCES profiles(id),
-  status text CHECK (status IN ('running', 'completed', 'failed')),
-  job_title_searched text,
-  location_searched text,
-  jobs_found integer,
-  started_at timestamptz DEFAULT now(),
-  completed_at timestamptz
-);
-
--- Agent logs
-CREATE TABLE agent_logs (
-  id uuid DEFAULT gen_random_uuid() PRIMARY KEY,
-  run_id uuid REFERENCES agent_runs(id),
-  user_id uuid REFERENCES profiles(id),
-  message text,
-  level text CHECK (level IN ('info', 'success', 'warning', 'error')),
-  job_id uuid,
-  created_at timestamptz DEFAULT now()
-);
-
--- Storage bucket for resumes
-INSERT INTO storage.buckets (id, name, public) VALUES ('resumes', 'resumes', false);
+```bash
+npx -y @insforge/cli link                      # once, to pick your project
+npx -y @insforge/cli db migrations up --all
+npx -y @insforge/cli storage create-bucket resumes --private
 ```
 
-> **Note:** The full schema with RLS policies is managed through InsForge. The above covers the core tables.
+| Table | Purpose |
+|-------|---------|
+| `profiles` | One row per user (`id` = auth user id): contact info, experience, skills, target titles, preferences, resume URL |
+| `jobs` | Scored listings. `status` (`saved` → `applied` → `interviewing` / `rejected`) is the application pipeline |
+| `agent_runs` | One row per job search |
+| `agent_logs` | Activity feed for searches and per-job agents |
+
+Every table has row-level security restricting users to their own rows. Resumes are stored in the private `resumes` bucket at `{user_id}/resume.pdf`.
 
 ### Run
 

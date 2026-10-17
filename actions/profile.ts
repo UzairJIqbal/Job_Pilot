@@ -121,13 +121,18 @@ export async function uploadResume(file: File): Promise<{
       return { url: null, error: "Failed to upload resume. Please try again." };
     }
 
+    // Upsert, not update: a user can upload before ever saving the profile form,
+    // and an update on a missing row silently matches nothing.
     const { error: updateErr } = await insforge.database
       .from("profiles")
-      .update({ resume_pdf_url: data.url, updated_at: new Date().toISOString() })
-      .eq("id", userId);
+      .upsert(
+        { id: userId, resume_pdf_url: data.url, updated_at: new Date().toISOString() },
+        { onConflict: "id" },
+      );
 
     if (updateErr) {
       console.error("[actions/profile] uploadResume update:", updateErr);
+      return { url: null, error: "Resume uploaded but could not be saved to your profile. Please try again." };
     }
 
     revalidatePath("/profile");

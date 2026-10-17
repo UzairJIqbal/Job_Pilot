@@ -39,6 +39,8 @@ export type ApplicationAnswer = {
 export type ApplicationState =
   | "needs_review"
   | "approved"
+  /** The worker filled the form without sending; waiting for the user's Send click. */
+  | "ready_to_send"
   | "submitting"
   | "submitted"
   | "failed"
@@ -47,6 +49,7 @@ export type ApplicationState =
 export const APPLICATION_STATE_LABELS: Record<ApplicationState, string> = {
   needs_review: "Needs review",
   approved: "Approved",
+  ready_to_send: "Ready to send",
   submitting: "Submitting",
   submitted: "Submitted",
   failed: "Failed",
@@ -89,7 +92,8 @@ export type ReceiptField = {
 
 /** What the worker did on the employer's form. Stored in applications.receipt. */
 export type SubmissionReceipt = {
-  mode: "live" | "dry_run";
+  /** preview: filled for the user to check, nothing attached or sent. */
+  mode: "live" | "preview" | "dry_run";
   formUrl: string;
   finishedAt: string;
   fields: ReceiptField[];
@@ -114,6 +118,7 @@ export type ApplicationRow = {
   screenshot_key: string | null;
   error: string | null;
   approved_at: string | null;
+  send_confirmed_at: string | null;
   submitted_at: string | null;
   updated_at: string;
 };

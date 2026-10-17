@@ -1,6 +1,6 @@
 # Tsenta-class JobPilot: feature map
 
-Status: **approved 2026-10-17** (cap 25/day, seeded company list). Branch: `tsenta-parity`.
+Status: **approved 2026-10-17** (cap 10/day, stop before submit, seeded company list). Branch: `tsenta-parity`.
 
 Clean-room plan. Tsenta was studied only through its public site, third-party reviews, and an unauthenticated load of its dashboard login page. No Tsenta code, copy, or brand assets are reused.
 
@@ -77,7 +77,7 @@ Each phase ships on its own and leaves the app working.
 ## Phase 4 status: built, not deployed
 
 - **Worker** (`worker/`): a Node service that claims approved applications, fills the employer's form in headless Chromium (Playwright) and records a receipt. It falls back to Stagehand with Gemini only for fields it can't place. Adapters cover Greenhouse, Ashby and Lever (`worker/src/ats.ts`).
-- **Claiming** (`claim_next_application`, migration `20261017115403`): `FOR UPDATE SKIP LOCKED` plus a per-user lock, so several workers never take the same row. It enforces the daily cap (25 per user over 24 hours, counting rows in flight). A row stuck in `submitting` for 20 minutes is failed with a "check the company's site" message rather than retried, because it may have gone through.
+- **Claiming** (`claim_next_application`, migration `20261017115403`): `FOR UPDATE SKIP LOCKED` plus a per-user lock, so several workers never take the same row. Migration `20261017121939` replaced it; see "Stop before submit" below. A send stuck in `submitting` for 20 minutes is failed with a "check the company's site" message rather than retried, because it may have gone through. A stuck preview goes back to Approved.
 - **Safety**: the run stops before submitting if a required field is still empty, a CAPTCHA challenge is showing, or there's no submit button. After submitting it needs a confirmation page or message. Otherwise it fails with the form's errors or "may have gone through". It never solves CAPTCHAs or email codes.
 - **Receipts**: every field and how it was filled, the resume key, the cover letter mode and the confirmation text, plus a full-page screenshot at `{user}/receipts/{application}.png` in the `resumes` bucket. Success marks the job `applied` and writes to the activity log.
 - **Dry run**: `npx tsx src/main.ts --dry-run --app <id>` (from `worker/`) fills the form and saves a screenshot. It claims nothing, attaches no files and never clicks submit.
@@ -88,7 +88,32 @@ Each phase ships on its own and leaves the app working.
   npx -y @insforge/cli compute deploy "$ctx" --name jobpilot-worker \
     --port 8080 --cpu shared-2x --memory 2048 --env-file <worker env file>
   ```
-  Env: `INSFORGE_URL`, `INSFORGE_API_KEY` (admin, server-only), `GEMINI_API_KEY` (AI fallback). Optional: `DAILY_SUBMISSION_CAP` (25), `POLL_INTERVAL_MS` (15000), `AI_FALLBACK=0`, `WORKER_ID`. Run a single instance until live submission has been watched end to end.
+  Env: `INSFORGE_URL`, `INSFORGE_API_KEY` (admin, server-only), `GEMINI_API_KEY` (AI fallback). Optional: `SUBMIT_MODE` (`confirm`; `auto` skips the preview), `DAILY_SUBMISSION_CAP` (10, can only go lower), `MIN_MATCH_SCORE` (70, can only go higher), `POLL_INTERVAL_MS` (15000), `AI_FALLBACK=0`, `WORKER_ID`. Run a single instance until live submission has been watched end to end.
+
+### Stop before submit (default)
+
+Approving an application doesn't send it. The flow is:
+
+1. **Approve**: the row becomes `approved` and `approved_at` is recorded.
+2. **Preview**: the worker claims it and fills the form, but attaches no files and never clicks submit. It saves a screenshot, stores a receipt with mode `preview`, and moves the row to `ready_to_send`.
+3. **Send**: the user checks the screenshot on the job page and clicks **Send application**. Bulk approve in the queue can't do this. The trigger records `send_confirmed_at` only on this exact `ready_to_send → approved` move, and only when the draft didn't change at the same time.
+4. **Live run**: the worker claims the row again as a send. It fills the form and attaches the resume. If any field differs from the confirmed preview, it stops before submit.
+
+Editing the cover letter, answers, questions or resume after the preview clears the confirmation and makes a new preview.
+
+The checks are enforced in two places, the database and the worker:
+
+| Rule | Database (`claim_next_application`, guard trigger) | Worker (`main.ts`, `run.ts`) |
+|---|---|---|
+| Recorded approval | Claims only `approved` rows with `approved_at`. Only the user's Send click sets `send_confirmed_at`. | `sendRefusal` fails the row before any browser opens if either is missing. |
+| 10 sends per day | Live sends are capped at 10 per user per 24h. The cap is clamped, so a worker can't raise it. Previews don't count. | `DAILY_SUBMISSION_CAP` is clamped to 10 or less. |
+| Minimum match score | Approved rows below 70, or with no score, are failed with the reason. The bar is clamped. | `sendRefusal` checks `jobs.match_score` again. |
+| No CAPTCHA | — | Stops if a challenge, a visible "I'm not a robot" checkbox or Turnstile is showing. It checks again right before the click, and after submitting. The AI fallback refuses any bot-check field or instruction. No code reads or clicks inside a CAPTCHA frame. |
+
+Verified on 2026-10-17:
+- A rolled-back SQL test of the claim function and the guard trigger passed.
+- Dry runs on the Affirm (Greenhouse), Binance (Lever) and Linear (Ashby) forms passed with the wider CAPTCHA check.
+- The comparison against the preview was tested with fixtures.
 
 ## Phase 5 status: done
 
@@ -103,6 +128,7 @@ Each phase ships on its own and leaves the app working.
 - `profiles` + `salary_min`, `seniority`, `excluded_companies`, `excluded_keywords`, `auto_discover`, `last_discovered_at` (the existing `remote_preference` is reused)
 - `application_profiles` (work auth, sponsorship, saved answers, EEO choices; one per user)
 - `applications` (job_id, state, tailored_resume_key, resume_diff, cover_letter, answers, receipt, screenshot_key, error, submitted_at)
+- `applications` + `ready_to_send` state, `send_confirmed_at`, `claim_mode`; `claim_next_application` with hard limits (migration `20261017121939`)
 
 All with RLS per user, like the existing tables.
 

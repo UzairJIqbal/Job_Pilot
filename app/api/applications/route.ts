@@ -3,7 +3,8 @@ import { getAuthenticatedClient } from "@/lib/auth-helpers";
 import type { ApplicationAnswer, ApplicationState } from "@/lib/applications";
 
 // Bulk state change from the queue. Same rules as PATCH /api/applications/{id}:
-// sent rows are locked, and a row with flagged answers can't be approved.
+// sent rows are locked, a row with flagged answers can't be approved, and a
+// ready preview can't be bulk-sent.
 const USER_STATES = new Set<ApplicationState>(["needs_review", "approved", "skipped"]);
 const MAX_IDS = 100;
 
@@ -45,6 +46,9 @@ export async function PATCH(req: NextRequest) {
       found.add(row.id);
       if (row.state === "submitting" || row.state === "submitted") {
         rejected.push({ id: row.id, reason: "Already sent" });
+      } else if (state === "approved" && row.state === "ready_to_send") {
+        // Sending is one application at a time, from its preview.
+        rejected.push({ id: row.id, reason: "Check its preview and send it from the job page" });
       } else if (state === "approved" && row.answers.some((a) => a.needsReview)) {
         rejected.push({ id: row.id, reason: "Has answers to review" });
       } else if (row.state !== state) {

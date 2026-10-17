@@ -189,15 +189,31 @@ export async function setValue(
   return false;
 }
 
-/** Visible challenges only. Invisible badges are normal and only matter if they escalate. */
+/** Fields and AI instructions the worker must never touch: anything that looks like a bot check. */
+export const BOT_CHECK = /captcha|recaptcha|hcaptcha|turnstile|robot|human verification|verify (that )?you|are you human/i;
+
+/**
+ * A CAPTCHA the user would have to solve: an image challenge, or a visible
+ * "I'm not a robot" checkbox. Invisible badges are normal and only matter if
+ * they escalate. The worker only looks; it never clicks inside these frames.
+ */
 export async function captchaChallenge(page: Page): Promise<string | null> {
-  const frames = page.locator(
+  const challenges = page.locator(
     "iframe[src*='recaptcha/api2/bframe'], iframe[src*='recaptcha/enterprise/bframe'], iframe[src*='hcaptcha.com'][src*='challenge'], iframe[src*='challenges.cloudflare.com']",
   );
-  const n = await frames.count();
-  for (let i = 0; i < n; i++) {
-    const box = await frames.nth(i).boundingBox().catch(() => null);
+  for (let i = 0; i < (await challenges.count()); i++) {
+    const box = await challenges.nth(i).boundingBox().catch(() => null);
     if (box && box.width > 100 && box.height > 100) return "The form showed a CAPTCHA challenge";
+  }
+  const checkboxes = page.locator(
+    "iframe[src*='recaptcha/api2/anchor']:not([src*='size=invisible']), iframe[src*='recaptcha/enterprise/anchor']:not([src*='size=invisible']), iframe[src*='hcaptcha.com'][src*='frame=checkbox']:not([src*='size=invisible'])",
+  );
+  for (let i = 0; i < (await checkboxes.count()); i++) {
+    const frame = checkboxes.nth(i);
+    const box = await frame.boundingBox().catch(() => null);
+    if (box && box.width > 50 && box.height > 30 && (await frame.isVisible().catch(() => false))) {
+      return "The form has an \"I'm not a robot\" check";
+    }
   }
   return null;
 }

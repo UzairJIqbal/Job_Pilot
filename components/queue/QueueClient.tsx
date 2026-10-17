@@ -6,11 +6,16 @@ import { useRouter } from "next/navigation";
 import { APPLICATION_STATE_LABELS, type ApplicationState } from "@/lib/applications";
 import type { DraftCandidate, QueueItem } from "@/lib/queue";
 
-type Tab = "needs_review" | "approved" | "failed" | "skipped";
+type Tab = "needs_review" | "ready_to_send" | "approved" | "failed" | "skipped";
 
 const TABS: { key: Tab; label: string; empty: string }[] = [
   { key: "needs_review", label: "Needs review", empty: "Nothing waiting. Draft applications for your top matches below." },
-  { key: "approved", label: "Approved", empty: "Approved applications wait here until they're sent." },
+  {
+    key: "ready_to_send",
+    label: "Ready to send",
+    empty: "Approved applications appear here once the worker has filled the form. Open one to check the preview and send it.",
+  },
+  { key: "approved", label: "Approved", empty: "Approved applications wait here for their preview, then until they're sent." },
   { key: "failed", label: "Failed", empty: "No failed submissions." },
   { key: "skipped", label: "Skipped", empty: "Applications you skip land here." },
 ];
@@ -18,6 +23,7 @@ const TABS: { key: Tab; label: string; empty: string }[] = [
 // Approved also lists rows in flight or sent, so the user sees them leave.
 const TAB_STATES: Record<Tab, ApplicationState[]> = {
   needs_review: ["needs_review"],
+  ready_to_send: ["ready_to_send"],
   approved: ["approved", "submitting", "submitted"],
   failed: ["failed"],
   skipped: ["skipped"],
@@ -312,7 +318,7 @@ export function QueueClient({ items, candidates }: Props) {
                   href={`/find-jobs/${item.jobId}#application`}
                   className="shrink-0 rounded-lg px-3 py-1.5 text-sm font-medium text-accent hover:bg-surface-secondary"
                 >
-                  {item.flagged > 0 && !locked ? "Review" : "Open"}
+                  {item.state === "ready_to_send" ? "Check & send" : item.flagged > 0 && !locked ? "Review" : "Open"}
                 </Link>
               </li>
             );

@@ -4,13 +4,29 @@ import { join } from "node:path";
 import type { Page } from "playwright";
 import { ADAPTERS } from "./ats";
 import { openSession } from "./browser";
-import { captchaChallenge, controlKind, emptyRequired, pickOption, setValue, typeAndSuggest, visibleErrors } from "./fill";
+import { BOT_CHECK, captchaChallenge, controlKind, emptyRequired, pickOption, setValue, typeAndSuggest, visibleErrors } from "./fill";
 import type { FieldRecord, Receipt, RunOptions, SubmissionInput, SubmissionResult } from "./types";
 
 const SUBMIT_WAIT_MS = 30_000;
 
 function shown(value: string | string[]): string {
   return Array.isArray(value) ? value.join(", ") : value;
+}
+
+/**
+ * What a live run filled that differs from the preview the user confirmed.
+ * Files are left out: the preview deliberately didn't attach them.
+ */
+export function differences(expected: FieldRecord[], actual: FieldRecord[]): string[] {
+  const key = (f: FieldRecord) => `${f.label}\u0000${f.value}`;
+  const sent = (f: FieldRecord) => f.how === "filled" || f.how === "fallback";
+  const files = new Set(expected.filter((f) => f.how === "dry_run").map((f) => f.label));
+  const want = new Set(expected.filter((f) => sent(f) && !files.has(f.label)).map(key));
+  const got = new Set(actual.filter((f) => sent(f) && !files.has(f.label)).map(key));
+  const out: string[] = [];
+  for (const k of got) if (!want.has(k)) out.push(k.split("\u0000")[0]);
+  for (const k of want) if (!got.has(k)) out.push(k.split("\u0000")[0]);
+  return [...new Set(out)];
 }
 
 /** "Lahore, Punjab, Pakistan" → "Pakistan". */
@@ -118,6 +134,10 @@ export async function runApplication(input: SubmissionInput, opts: RunOptions): 
         record({ label: q.label, value: shown(answer.value), how: "filled" });
         continue;
       }
+      if (BOT_CHECK.test(q.label)) {
+        record({ label: q.label, value: shown(answer.value), how: "skipped", note: "Looks like a bot check; left alone" });
+        continue;
+      }
       const verb = q.type === "text" || q.type === "textarea" ? "Fill" : "Choose";
       ok = await session.act(`${verb} the form field labelled "${q.label}" with: ${shown(answer.value)}`);
       record({ label: q.label, value: shown(answer.value), how: ok ? "fallback" : "skipped", note: ok ? undefined : "Couldn't find this field" });
@@ -161,7 +181,20 @@ export async function runApplication(input: SubmissionInput, opts: RunOptions): 
       return { ok: true, receipt: receipt(formUrl, null, false, cover), screenshot };
     }
 
+    /* ── a confirmed send must match the preview exactly ── */
+    if (opts.expectedFields) {
+      const changed = differences(opts.expectedFields, fields);
+      if (!opts.expectedFields.length || changed.length) {
+        return await fail(
+          `The form filled differently from the preview you confirmed (${changed.slice(0, 5).map((c) => `"${c}"`).join(", ") || "no preview on record"}). Nothing was sent; re-approve to get a fresh preview.`,
+        );
+      }
+    }
+
     /* ── submit and wait for proof ── */
+    // Last look right before the click: never submit into a challenge.
+    const lateChallenge = await captchaChallenge(page);
+    if (lateChallenge) return await fail(`${lateChallenge}. Nothing was sent; JobPilot doesn't solve CAPTCHAs, so apply on the company's site.`);
     opts.log("Submitting");
     await submit.first().click();
     const outcome = await waitForOutcome(page, adapter.confirmation);

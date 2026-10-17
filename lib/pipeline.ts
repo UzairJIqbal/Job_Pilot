@@ -72,7 +72,7 @@ export async function getPipelineJobs(userId: string): Promise<PipelineJob[]> {
   }
 }
 
-/** Drafted applications waiting for the user's approval. */
+/** Applications waiting on the user: drafts to approve and previews to send. */
 export async function countNeedsReview(userId: string): Promise<number> {
   try {
     const insforge = await createInsforgeServer();
@@ -80,7 +80,7 @@ export async function countNeedsReview(userId: string): Promise<number> {
       .from("applications")
       .select("id", { count: "exact", head: true })
       .eq("user_id", userId)
-      .eq("state", "needs_review");
+      .in("state", ["needs_review", "ready_to_send"]);
     if (error) {
       console.error("[pipeline] Queue count error:", error);
       return 0;
@@ -106,8 +106,8 @@ export function getNextActions(jobs: PipelineJob[], limit = 5, needsReview = 0):
     actions.push({
       id: "review-queue",
       kind: "review",
-      title: `${needsReview} drafted application${needsReview === 1 ? "" : "s"} to review`,
-      detail: "Approve them to send, or skip",
+      title: `${needsReview} application${needsReview === 1 ? "" : "s"} waiting on you`,
+      detail: "Approve drafts, or check a filled form and send it",
       href: "/queue",
       cta: "Review",
     });

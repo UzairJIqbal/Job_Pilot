@@ -1,4 +1,4 @@
-import type { ApplicationAnswer, ApplicationQuestion, SubmissionReceipt as Receipt } from "../../lib/applications";
+import type { ApplicationAnswer, ApplicationQuestion, ReceiptField as FieldRecord, SubmissionReceipt as Receipt } from "../../lib/applications";
 
 export type Ats = "greenhouse" | "lever" | "ashby";
 
@@ -11,6 +11,7 @@ export type SubmissionInput = {
   atsJobId: string;
   company: string;
   title: string;
+  matchScore: number | null;
   questions: ApplicationQuestion[];
   answers: ApplicationAnswer[];
   coverLetter: string | null;
@@ -41,6 +42,11 @@ export type SubmissionResult =
 export type RunOptions = {
   /** Fill the form and take a screenshot, but never upload files or submit. */
   dryRun: boolean;
+  /**
+   * Fields the user saw in the preview. A live run that fills anything
+   * different stops before submit.
+   */
+  expectedFields?: FieldRecord[];
   /** Let Stagehand fill fields the deterministic pass couldn't find. Needs GEMINI_API_KEY. */
   aiFallback: boolean;
   headless: boolean;

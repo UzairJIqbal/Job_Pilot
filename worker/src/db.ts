@@ -27,6 +27,10 @@ export type ApplicationRow = {
   cover_letter: string | null;
   tailored_resume_key: string | null;
   attempts: number;
+  approved_at: string | null;
+  send_confirmed_at: string | null;
+  claim_mode: "preview" | "send" | null;
+  receipt: Receipt | null;
 };
 
 type JobRow = {
@@ -34,6 +38,7 @@ type JobRow = {
   title: string;
   company: string;
   ats: Ats | null;
+  match_score: number | null;
   ats_job_id: string | null;
   source_url: string | null;
   external_apply_url: string | null;
@@ -49,10 +54,20 @@ type ProfileRow = {
   work_experience: { company?: string; isCurrent?: boolean }[] | null;
 };
 
-export async function claimNext(db: Admin, worker: string, dailyCap: number): Promise<ApplicationRow | null> {
+export type ClaimLimits = { dailyCap: number; minMatchScore: number; requireConfirmation: boolean };
+
+/**
+ * The database decides what may be claimed: approved rows only, the job's
+ * match score at or above the bar, at most 10 live sends per user per day,
+ * and (by default) a preview before every send. It clamps these limits so a
+ * worker can tighten them but never loosen them.
+ */
+export async function claimNext(db: Admin, worker: string, limits: ClaimLimits): Promise<ApplicationRow | null> {
   const { data, error } = await db.database.rpc("claim_next_application", {
     p_worker: worker,
-    p_daily_cap: dailyCap,
+    p_daily_cap: limits.dailyCap,
+    p_min_match_score: limits.minMatchScore,
+    p_require_confirmation: limits.requireConfirmation,
   });
   if (error) throw new Error(`claim failed: ${error.message}`);
   const rows = (data ?? []) as ApplicationRow[];
@@ -67,7 +82,7 @@ export async function loadApplication(db: Admin, id: string): Promise<Applicatio
 /** Everything the browser run needs. Throws with a user-facing reason. */
 export async function buildInput(db: Admin, app: ApplicationRow, workDir: string): Promise<SubmissionInput> {
   const [jobRes, profileRes, apRes] = await Promise.all([
-    db.database.from("jobs").select("id, title, company, ats, ats_job_id, source_url, external_apply_url").eq("id", app.job_id).eq("user_id", app.user_id).maybeSingle(),
+    db.database.from("jobs").select("id, title, company, ats, match_score, ats_job_id, source_url, external_apply_url").eq("id", app.job_id).eq("user_id", app.user_id).maybeSingle(),
     db.database.from("profiles").select("full_name, email, phone, location, linkedin_url, portfolio_url, work_experience").eq("id", app.user_id).maybeSingle(),
     db.database.from("application_profiles").select("github_url").eq("user_id", app.user_id).maybeSingle(),
   ]);
@@ -100,6 +115,7 @@ export async function buildInput(db: Admin, app: ApplicationRow, workDir: string
     atsJobId: job.ats_job_id,
     company: job.company,
     title: job.title,
+    matchScore: job.match_score,
     questions: app.questions,
     answers: app.answers,
     coverLetter: app.cover_letter,
@@ -138,7 +154,7 @@ export async function markSubmitted(db: Admin, app: ApplicationRow, receipt: Rec
   const now = new Date().toISOString();
   const { error } = await db.database
     .from("applications")
-    .update({ state: "submitted", receipt, screenshot_key: screenshotKey, submitted_at: now, error: null, claimed_by: null })
+    .update({ state: "submitted", receipt, screenshot_key: screenshotKey, submitted_at: now, error: null, claimed_by: null, claim_mode: null })
     .eq("id", app.id)
     .eq("state", "submitting");
   if (error) throw new Error(`Couldn't record the submission: ${error.message}`);
@@ -146,11 +162,31 @@ export async function markSubmitted(db: Admin, app: ApplicationRow, receipt: Rec
   await log(db, app, "success", `Applied to ${label}.`);
 }
 
+/** The preview is ready: the user checks the screenshot and clicks Send. Nothing was sent. */
+export async function markPreviewReady(db: Admin, app: ApplicationRow, receipt: Receipt, png: Buffer, label: string) {
+  const screenshotKey = await uploadScreenshot(db, app, png);
+  const { error } = await db.database
+    .from("applications")
+    .update({
+      state: "ready_to_send",
+      receipt: { ...receipt, mode: "preview" },
+      screenshot_key: screenshotKey,
+      error: null,
+      claimed_by: null,
+      claim_mode: null,
+      send_confirmed_at: null,
+    })
+    .eq("id", app.id)
+    .eq("state", "submitting");
+  if (error) throw new Error(`Couldn't record the preview: ${error.message}`);
+  await log(db, app, "success", `Filled the form for ${label}. Check the preview and click Send.`);
+}
+
 export async function markFailed(db: Admin, app: ApplicationRow, reason: string, receipt: Receipt | null, png: Buffer | null, label: string) {
   const screenshotKey = await uploadScreenshot(db, app, png);
   await db.database
     .from("applications")
-    .update({ state: "failed", error: reason, receipt, screenshot_key: screenshotKey, claimed_by: null })
+    .update({ state: "failed", error: reason, receipt, screenshot_key: screenshotKey, claimed_by: null, claim_mode: null, send_confirmed_at: null })
     .eq("id", app.id)
     .eq("state", "submitting");
   await log(db, app, "error", `Couldn't apply to ${label}: ${reason}`);

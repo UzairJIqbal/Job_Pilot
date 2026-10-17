@@ -1,5 +1,6 @@
 import { createServer } from "node:net";
 import { chromium, type Browser, type Page } from "playwright";
+import { BOT_CHECK } from "./fill";
 
 // Playwright drives the form. Stagehand attaches to the same Chrome over CDP
 // only when a field can't be found by id or label, so most runs make no AI call.
@@ -44,6 +45,8 @@ export async function openSession(opts: { headless: boolean; aiFallback: boolean
   async function act(instruction: string): Promise<boolean> {
     const apiKey = process.env.GEMINI_API_KEY;
     if (!opts.aiFallback || !apiKey || stagehandFailed) return false;
+    // Never let the model near a CAPTCHA or bot check.
+    if (BOT_CHECK.test(instruction)) return false;
     try {
       if (!stagehand) {
         const version = (await (await fetch(`http://127.0.0.1:${port}/json/version`)).json()) as {

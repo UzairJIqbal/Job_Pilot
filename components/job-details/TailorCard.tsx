@@ -27,6 +27,7 @@ const TAILOR_STEPS: ProgressStep[] = [
 const STATE_STYLES: Record<ApplicationState, string> = {
   needs_review: "bg-warning-lightest text-warning-foreground",
   approved: "bg-success-lightest text-success-foreground",
+  ready_to_send: "bg-accent-light text-accent",
   submitting: "bg-surface-tertiary text-text-primary",
   submitted: "bg-success-lightest text-success-foreground",
   failed: "bg-error-lightest text-error-foreground",
@@ -196,7 +197,7 @@ function ApplicationReview({ application, onRetailor, retailoring }: ReviewProps
     setTouched((prev) => new Set(prev).add(id));
   }
 
-  async function patch(extra: { state?: ApplicationState } = {}) {
+  async function patch(extra: { state?: ApplicationState; confirmSend?: true } = {}) {
     setBusy(true);
     setMessage(null);
     setError(null);
@@ -216,7 +217,15 @@ function ApplicationReview({ application, onRetailor, retailoring }: ReviewProps
         setError(data.error || "Couldn't save changes");
         return;
       }
-      setMessage(extra.state ? `Marked as ${APPLICATION_STATE_LABELS[extra.state].toLowerCase()}` : "Saved");
+      setMessage(
+        extra.confirmSend
+          ? "Confirmed. The worker sends it next and attaches your tailored resume."
+          : extra.state === "approved"
+            ? "Approved. The worker fills the form next and shows you a preview before anything is sent."
+            : extra.state
+              ? `Marked as ${APPLICATION_STATE_LABELS[extra.state].toLowerCase()}`
+              : "Saved",
+      );
       router.refresh();
     } catch {
       setError("Network error — please try again");
@@ -250,6 +259,33 @@ function ApplicationReview({ application, onRetailor, retailoring }: ReviewProps
 
       {application.state === "failed" && application.error && (
         <p className="rounded-lg bg-error-lightest px-4 py-3 text-sm text-error-foreground">{application.error}</p>
+      )}
+
+      {application.state === "approved" && (
+        <p className="rounded-lg bg-surface-secondary px-4 py-3 text-sm text-text-secondary">
+          {application.send_confirmed_at
+            ? "Confirmed. Waiting for the worker to send it."
+            : "Approved. The worker fills the form next and shows you a preview here. Nothing is sent until you click Send."}
+        </p>
+      )}
+
+      {application.state === "ready_to_send" && application.screenshot_key && (
+        <div className="rounded-xl border border-accent bg-surface p-5">
+          <h4 className="mb-1 text-sm font-semibold text-text-primary">Check the filled form, then send</h4>
+          <p className="mb-3 text-sm text-text-secondary">
+            This is the employer&apos;s form as the worker filled it. Nothing has been sent and no file was attached.
+            Sending attaches your tailored resume and submits exactly these answers. Edit anything below and a new
+            preview is made first.
+          </p>
+          <a href={`/api/applications/${application.id}/screenshot`} target="_blank" rel="noopener noreferrer">
+            {/* eslint-disable-next-line @next/next/no-img-element -- private, auth-gated image */}
+            <img
+              src={`/api/applications/${application.id}/screenshot`}
+              alt="The employer's application form, filled in"
+              className="max-h-[480px] w-full rounded-lg border border-border object-cover object-top"
+            />
+          </a>
+        </div>
       )}
 
       {application.receipt && (
@@ -308,14 +344,25 @@ function ApplicationReview({ application, onRetailor, retailoring }: ReviewProps
       {/* Actions */}
       {!locked && (
         <div className="flex flex-wrap items-center gap-3">
-          <button
-            onClick={() => patch({ state: "approved" })}
-            disabled={busy || flagged.length > 0}
-            title={flagged.length > 0 ? "Review the flagged answers first" : undefined}
-            className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-60"
-          >
-            {application.state === "approved" ? "Approved" : "Approve"}
-          </button>
+          {application.state === "ready_to_send" ? (
+            <button
+              onClick={() => patch({ state: "approved", confirmSend: true })}
+              disabled={busy || dirty}
+              title={dirty ? "Save your edits first; they get a new preview" : undefined}
+              className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              Send application
+            </button>
+          ) : (
+            <button
+              onClick={() => patch({ state: "approved" })}
+              disabled={busy || flagged.length > 0 || application.state === "approved"}
+              title={flagged.length > 0 ? "Review the flagged answers first" : undefined}
+              className="rounded-lg bg-accent px-5 py-2.5 text-sm font-medium text-white hover:bg-accent-dark disabled:cursor-not-allowed disabled:opacity-60"
+            >
+              {application.state === "approved" ? "Approved" : "Approve"}
+            </button>
+          )}
           {dirty && (
             <button
               onClick={() => patch()}
@@ -379,9 +426,11 @@ function ReceiptSection({
   return (
     <div className="rounded-xl border border-border bg-surface p-5">
       <div className="mb-3 flex flex-wrap items-center gap-x-3 gap-y-1">
-        <h4 className="text-sm font-semibold text-text-primary">Receipt</h4>
+        <h4 className="text-sm font-semibold text-text-primary">
+          {receipt.mode === "preview" ? "Preview" : "Receipt"}
+        </h4>
         <span className="text-xs text-text-muted">
-          {submittedAt ? `Sent ${when}` : `Attempted ${when}`}
+          {submittedAt ? `Sent ${when}` : receipt.mode === "preview" ? `Filled ${when}, not sent` : `Attempted ${when}`}
         </span>
         <span className="ml-auto flex gap-3 text-sm font-medium">
           {screenshotHref && (

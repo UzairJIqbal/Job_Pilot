@@ -3,7 +3,9 @@ import { getAuthenticatedClient } from "@/lib/auth-helpers";
 import type { ApplicationAnswer } from "@/lib/applications";
 
 // Users can edit the cover letter and answers, and approve, skip or reopen.
-// The database trigger rejects any other state change from a browser session.
+// Sending is a separate, explicit step: { state: "approved", confirmSend: true }
+// on a ready_to_send preview. The database trigger records the confirmation
+// and rejects any other state change from a browser session.
 const USER_STATES = new Set(["needs_review", "approved", "skipped"]);
 
 function isAnswer(a: unknown): a is ApplicationAnswer {
@@ -78,6 +80,20 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
           { status: 400 },
         );
       }
+      // Approving a preview is the send click, and must say so.
+      const confirming = current.state === "ready_to_send" && body.state === "approved";
+      if (confirming !== (body.confirmSend === true)) {
+        return NextResponse.json(
+          { success: false, error: confirming ? "Use Send to confirm a preview." : "Only a ready preview can be sent." },
+          { status: 400 },
+        );
+      }
+      if (confirming && (update.cover_letter !== undefined || update.answers !== undefined)) {
+        return NextResponse.json(
+          { success: false, error: "Save your edits first. They get a new preview before sending." },
+          { status: 400 },
+        );
+      }
       update.state = body.state;
     }
 
@@ -90,7 +106,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
       .update(update)
       .eq("id", id)
       .eq("user_id", auth.userId)
-      .select("id, state, cover_letter, answers, approved_at");
+      .select("id, state, cover_letter, answers, approved_at, send_confirmed_at");
 
     if (error || !data?.length) {
       console.error("[api/applications] PATCH failed:", error);

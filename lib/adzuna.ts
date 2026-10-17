@@ -26,10 +26,16 @@ export async function searchAdzunaJobs(
   location: string,
 ): Promise<AdzunaJob[]> {
   const country = detectCountry(location);
+  // Adzuna has no place called "Remote": as `where` it matches nothing. Search
+  // it as a keyword and keep any real place ("Remote, London" -> London).
+  const remote = /\bremote\b/i.test(location);
+  if (remote) {
+    location = location.replace(/\bremote\b/gi, "").replace(/^[\s,/|-]+|[\s,/|-]+$/g, "");
+  }
   const params = new URLSearchParams({
     app_id: process.env.ADZUNA_APP_KEY!,
     app_key: process.env.ADZUNA_API_KEY!,
-    what: jobTitle,
+    what: remote ? `${jobTitle} remote` : jobTitle,
     category: "it-jobs",
     results_per_page: "10",
     "content-type": "application/json",

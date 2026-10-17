@@ -9,7 +9,7 @@ import type { DraftCandidate, QueueItem } from "@/lib/queue";
 type Tab = "needs_review" | "ready_to_send" | "approved" | "failed" | "skipped";
 
 const TABS: { key: Tab; label: string; empty: string }[] = [
-  { key: "needs_review", label: "Needs review", empty: "Nothing waiting. Draft applications for your top matches below." },
+  { key: "needs_review", label: "Needs review", empty: "Nothing waiting for review. Drafts for your strong matches show up here." },
   {
     key: "ready_to_send",
     label: "Ready to send",
@@ -150,7 +150,9 @@ export function QueueClient({ items, candidates }: Props) {
           <p className="text-sm font-medium text-text-primary">
             {candidates.length > 0
               ? `${candidates.length} strong match${candidates.length === 1 ? "" : "es"} not drafted yet`
-              : "Every strong match has a draft"}
+              : items.length > 0
+                ? "Every strong match has a draft"
+                : "No strong matches to draft yet"}
           </p>
           <p className="text-sm text-text-secondary">
             {drafting

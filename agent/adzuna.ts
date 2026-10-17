@@ -136,6 +136,7 @@ export async function discoverJobs(params: {
 
     const savedJobs: SavedJob[] = [];
     let retryDelay = 15000;
+    let outOfQuota = false;
 
     for (let i = 0; i < adzunaJobs.length; i++) {
       const job = adzunaJobs[i];
@@ -215,7 +216,10 @@ export async function discoverJobs(params: {
         console.error("[agent/adzuna] scoring failed for job:", job.title, error);
         await logAgentError(client, runId, error);
         // Out of quota for hours: stop scoring rather than sleep through it.
-        if (apiDelay && apiDelay > MAX_RETRY_DELAY_MS) break;
+        if (apiDelay && apiDelay > MAX_RETRY_DELAY_MS) {
+          outOfQuota = true;
+          break;
+        }
         if (apiDelay) retryDelay = apiDelay;
       }
     }
@@ -236,7 +240,9 @@ export async function discoverJobs(params: {
       success: true,
       jobs: savedJobs,
       runId,
-      message: `Found ${adzunaJobs.length} jobs and saved ${savedJobs.length} matches`,
+      message:
+        `Found ${adzunaJobs.length} jobs and saved ${savedJobs.length} matches` +
+        (outOfQuota ? ". Scoring stopped early: the AI service is out of quota. Try again later." : ""),
     };
   } catch (error) {
     console.error("[agent/adzuna] exception:", error);

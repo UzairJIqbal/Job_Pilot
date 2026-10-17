@@ -30,6 +30,10 @@ export function getScoringModel(): ScoringModel {
   return getGeminiClient().getGenerativeModel({ model: "gemini-2.5-flash" });
 }
 
+// A daily-quota 429 asks for a retry hours away. Waiting that long hangs the
+// request past any timeout, so a longer delay counts as a hard failure.
+export const MAX_RETRY_DELAY_MS = 60_000;
+
 export function extractRetryDelay(error: unknown): number | null {
   if (
     error &&
@@ -65,9 +69,9 @@ export async function generateWithRetry(
           : null;
 
       const isTransient = status === 503 || status === 429 || status === 500;
+      const apiDelay = extractRetryDelay(error);
 
-      if (isTransient && attempt < retries) {
-        const apiDelay = extractRetryDelay(error);
+      if (isTransient && attempt < retries && (apiDelay ?? 0) <= MAX_RETRY_DELAY_MS) {
         // 503 = sustained demand → longer delays; 429/500 = brief → shorter
         const baseDelay = status === 503 ? 3000 : 1000;
         const delay = apiDelay ?? baseDelay * Math.pow(2, attempt - 1);

@@ -1,7 +1,7 @@
 import type { InsForgeClient } from "@insforge/sdk";
 import { fetchBoards, hydrateJob, type BoardCompany, type BoardJob } from "@/lib/ats";
 import { filterAndRank, isExcluded, type DiscoveryPrefs } from "@/lib/discovery-filters";
-import { extractRetryDelay, getScoringModel, profileSummary, scoreJob } from "@/agent/scoring";
+import { MAX_RETRY_DELAY_MS, extractRetryDelay, getScoringModel, profileSummary, scoreJob } from "@/agent/scoring";
 import { getPostHogClient, shutdownPostHog } from "@/lib/posthog-server";
 
 // Gemini's free tier allows 5 requests a minute, so space calls out and keep
@@ -183,9 +183,11 @@ export async function discoverFromBoards(params: {
         });
       } catch (error) {
         const apiDelay = extractRetryDelay(error);
-        if (apiDelay) delay = apiDelay;
         console.error("[agent/boards] scoring failed:", job.company, job.title, error);
         await log(client, userId, runId, "error", error instanceof Error ? error.message : String(error));
+        // Out of quota for hours: stop scoring rather than sleep through it.
+        if (apiDelay && apiDelay > MAX_RETRY_DELAY_MS) break;
+        if (apiDelay) delay = apiDelay;
       }
     }
 

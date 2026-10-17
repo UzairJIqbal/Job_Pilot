@@ -1,5 +1,6 @@
 import { searchAdzunaJobs, type AdzunaJob } from "@/lib/adzuna";
 import {
+  MAX_RETRY_DELAY_MS,
   extractRetryDelay,
   getScoringModel,
   profileSummary as buildProfileSummary,
@@ -211,9 +212,11 @@ export async function discoverJobs(params: {
         }
       } catch (error) {
         const apiDelay = extractRetryDelay(error);
-        if (apiDelay) retryDelay = apiDelay;
         console.error("[agent/adzuna] scoring failed for job:", job.title, error);
         await logAgentError(client, runId, error);
+        // Out of quota for hours: stop scoring rather than sleep through it.
+        if (apiDelay && apiDelay > MAX_RETRY_DELAY_MS) break;
+        if (apiDelay) retryDelay = apiDelay;
       }
     }
 

@@ -51,3 +51,6 @@ test/data/05-versions-space.pdf
 # AI tool configs
 .claude/
 memory.md
+
+# MCP config (values come from env vars; see .mcp.example.json)
+.mcp.json

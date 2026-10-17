@@ -2,7 +2,7 @@
 
 import { useCallback, useState, useRef } from "react";
 import { uploadResume } from "@/actions/profile";
-import { MAX_RESUME_BYTES, MAX_RESUME_LABEL } from "@/lib/resume-file";
+import { MAX_RESUME_BYTES, MAX_RESUME_LABEL, NOT_A_PDF, looksLikePdf } from "@/lib/resume-file";
 
 import type { ProfileFormData } from "@/lib/mock-profile";
 
@@ -33,6 +33,10 @@ export function ResumeUpload({ resumeUrl, onUploadComplete, onExtractComplete, o
       }
       if (file.size > MAX_RESUME_BYTES) {
         setError(`File must be under ${MAX_RESUME_LABEL}.`);
+        return;
+      }
+      if (!looksLikePdf(new Uint8Array(await file.slice(0, 1024).arrayBuffer()))) {
+        setError(NOT_A_PDF);
         return;
       }
 

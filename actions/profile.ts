@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { createInsforgeServer } from "@/lib/insforge-server";
 import type { ProfileFormData, ProfileRow } from "@/lib/mock-profile";
 import { formDataToRow, rowToFormData } from "@/lib/mock-profile";
-import { MAX_RESUME_BYTES, MAX_RESUME_LABEL } from "@/lib/resume-file";
+import { MAX_RESUME_BYTES, MAX_RESUME_LABEL, NOT_A_PDF, looksLikePdf } from "@/lib/resume-file";
 
 export async function getProfile(userId?: string): Promise<{
   data: ProfileFormData | null;
@@ -110,6 +110,9 @@ export async function uploadResume(file: File): Promise<{
     // Upload overwrites the same key. Don't delete first: an upload that fails
     // or is abandoned would leave the user with no resume at all.
     const buffer = await file.arrayBuffer();
+    if (!looksLikePdf(new Uint8Array(buffer, 0, Math.min(buffer.byteLength, 1024)))) {
+      return { url: null, error: NOT_A_PDF };
+    }
     const { data, error: uploadErr } = await bucket.upload(storagePath, new Blob([buffer], { type: "application/pdf" }));
 
     if (uploadErr || !data) {

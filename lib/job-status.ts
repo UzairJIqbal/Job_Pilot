@@ -6,7 +6,7 @@ export const STATUS_LABELS: Record<JobStatus, string> = {
   replied: "Replied",
   interviewing: "Interviewing",
   offer: "Offer",
-  rejected: "Rejected",
+  rejected: "Closed",
 };
 
 export const STATUS_COLORS: Record<JobStatus, { bg: string; text: string }> = {
